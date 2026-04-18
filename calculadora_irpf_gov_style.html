@@ -1,6 +1,15 @@
-
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2968B3">
+<title>Calculadora IRPF / IRPFM 2026</title>
 <style>
 *{box-sizing:border-box;font-family:"Segoe UI",-apple-system,Arial,sans-serif;}
+html,body{margin:0;padding:0;background:#EDF0F5;color:#1A1A1A;}
+body{min-height:100vh;}
+button,input,select{font:inherit;}
 input[type=text],select{
   background:#fff;border:1px solid #ABABAB;border-radius:2px;
   padding:3px 8px;font-size:13px;color:#1A1A1A;width:100%;height:27px;
@@ -8,12 +17,22 @@ input[type=text],select{
 input[type=text]:focus,select:focus{border-color:#2968B3;outline:1px solid rgba(41,104,179,.25);outline-offset:0;}
 input[type=text]{text-align:right;font-family:"Courier New",Courier,monospace;}
 input[type=radio]{accent-color:#2968B3;width:auto;height:auto;}
+#root{min-height:100vh;}
+@media (max-width:640px){
+  input[type=text],select{
+    min-height:38px;
+    padding:8px 10px;
+    font-size:16px;
+  }
+}
 </style>
+</head>
+<body>
 <div id="root"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script>
-const {useState,useMemo}=React;
+const {useState,useMemo,useEffect}=React;
 const TML=[2428.80,2826.65,3751.05,4664.68,Infinity];
 const TMR=[0,.075,.15,.225,.275];
 const TAL=[29145.60,33919.80,45012.60,55976.16,Infinity];
@@ -55,6 +74,7 @@ const GR="#ABABAB",TX="#1A1A1A",MT="#555555";
 const WH="#FFFFFF",ALT="#EEF4FD";
 
 function App(){
+  const [vw,setVw]=useState(typeof window==="undefined"?1024:window.innerWidth);
   const [emps,setEmps]=useState([{id:1,nome:"Empresa 1",reg:"LP",at:0,div:0}]);
   const [pl,setPl]=useState(0);const [alug,setAlug]=useState(0);
   const [cdb,setCdb]=useState(0);const [isen,setIsen]=useState(0);
@@ -62,6 +82,17 @@ function App(){
   const [med,setMed]=useState(0);const [edu,setEdu]=useState(0);
   const [pgbl,setPgbl]=useState(0);const [decl,setDecl]=useState("auto");
   const [tab,setTab]=useState("dados");
+
+  useEffect(()=>{
+    const onResize=()=>setVw(window.innerWidth);
+    onResize();
+    window.addEventListener("resize",onResize);
+    return()=>window.removeEventListener("resize",onResize);
+  },[]);
+
+  const isMobile=vw<=640;
+  const isNarrow=vw<=420;
+
   const addE=()=>setEmps(p=>[...p,{id:Date.now(),nome:`Empresa ${p.length+1}`,reg:"LP",at:0,div:0}]);
   const delE=id=>setEmps(p=>p.filter(e=>e.id!==id));
   const upd=(id,k,v)=>setEmps(p=>p.map(e=>e.id===id?{...e,[k]:v}:e));
@@ -101,347 +132,357 @@ function App(){
   },[emps,pl,alug,cdb,isen,outr,dep,med,edu,pgbl,decl]);
 
   const h=(t,p,...c)=>React.createElement(t,p,...c);
-  const CARD={background:WH,border:`1px solid ${GR}`,borderRadius:3,padding:"10px 14px",marginBottom:10};
-  const SH={background:BL,borderLeft:`4px solid ${B}`,padding:"6px 14px",margin:"-10px -14px 12px",borderRadius:"0 2px 0 0"};
-  const SHT={margin:0,fontSize:11,fontWeight:"bold",color:BD,textTransform:"uppercase",letterSpacing:".6px"};
-  const LBL={display:"block",fontSize:11,fontWeight:"bold",color:MT,marginBottom:4,textTransform:"uppercase",letterSpacing:".3px"};
-  const HN=(c)=>({margin:"3px 0 0",fontSize:11,color:c||MT,lineHeight:1.4});
-  const SP={display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid #D8E8F5"};
+  const CARD={background:WH,border:`1px solid ${GR}`,borderRadius:3,padding:isMobile?"10px":"10px 14px",marginBottom:10,overflow:"hidden"};
+  const SH={background:BL,borderLeft:`4px solid ${B}`,padding:isMobile?"6px 10px":"6px 14px",margin:isMobile?"-10px -10px 12px":"-10px -14px 12px",borderRadius:"0 2px 0 0"};
+  const SHT={margin:0,fontSize:isMobile?10:11,fontWeight:"bold",color:BD,textTransform:"uppercase",letterSpacing:".6px"};
+  const LBL={display:"block",fontSize:isMobile?10:11,fontWeight:"bold",color:MT,marginBottom:4,textTransform:"uppercase",letterSpacing:".3px"};
+  const HN=(c)=>({margin:"3px 0 0",fontSize:isMobile?10:11,color:c||MT,lineHeight:1.4});
+  const SP={display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"5px 0",borderBottom:"1px solid #D8E8F5"};
   const MN={fontFamily:"'Courier New',Courier,monospace"};
-  const PL=(bg,cl,br)=>({fontSize:10,padding:"2px 7px",borderRadius:2,background:bg,color:cl,border:`1px solid ${br}`,fontWeight:"bold",whiteSpace:"nowrap",letterSpacing:".3px"});
+  const PL=(bg,cl,br)=>({fontSize:isMobile?9:10,padding:isMobile?"3px 6px":"2px 7px",borderRadius:2,background:bg,color:cl,border:`1px solid ${br}`,fontWeight:"bold",whiteSpace:isMobile?"normal":"nowrap",letterSpacing:".3px"});
   const mkrPct=Math.min(100,r.RG/BMAX*100);
+  const pagePad=isMobile?8:12;
+  const formGrid=isMobile?"1fr":"repeat(auto-fit,minmax(155px,1fr))";
+  const companyGrid=isMobile?"1fr":"repeat(auto-fit,minmax(140px,1fr))";
+  const compareGrid=isMobile?"1fr":"repeat(auto-fit,minmax(220px,1fr))";
+  const summaryGrid=isMobile?"1fr":"repeat(auto-fit,minmax(130px,1fr))";
+  const companyResultGrid=isMobile?"1fr":"1fr 1fr 1fr";
+  const taxTableCols=isNarrow?"1fr 80px 70px":"1fr 72px 65px";
+  const headerStack=isMobile?{flexDirection:"column",alignItems:"flex-start",gap:8}:{};
+  const wideRow=isNarrow?{flexDirection:"column",alignItems:"flex-start",gap:4}:{};
 
-  return h("div",{style:{background:BG,paddingBottom:32}},
-
-    h("div",{style:{background:B,padding:"9px 14px",borderBottom:"2px solid #1A3F6F"}},
-      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
-        h("div",null,
-          h("p",{style:{margin:0,fontSize:15,fontWeight:"bold",color:"#fff",letterSpacing:".2px"}},"Calculadora IRPF / IRPFM 2026"),
-          h("p",{style:{margin:"2px 0 0",fontSize:10,color:"rgba(255,255,255,.8)"}},"Lei 15.270/2025 · IN RFB 2.299/2025 · v1.1")
-        ),
-        h("div",{style:{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"flex-end"}},
-          r.irpfmOn&&h("span",{style:PL("#FDECEA",RD,"#E53935")},"IRPFM ATIVO"),
-          !r.irpfmOn&&r.RG>0&&h("span",{style:PL("#E8F5E9",GN,"#4CAF50")},"IRPFM INATIVO"),
-          r.sn&&h("span",{style:PL("#E8F0FF",BD,"#90B5E0")},"SIMPLES NAC.")
-        )
-      )
-    ),
-
-    h("div",{style:{background:"#C8DDED",borderBottom:`2px solid ${B}`,display:"flex",padding:"0 8px"}},
-      ["dados","resultados"].map(id=>h("button",{key:id,onClick:()=>setTab(id),style:{
-        padding:"6px 18px",cursor:"pointer",fontSize:13,fontWeight:tab===id?"bold":"normal",fontFamily:"inherit",
-        background:tab===id?WH:"transparent",color:tab===id?B:MT,
-        border:`1px solid ${tab===id?B:"transparent"}`,borderBottom:"none",
-        borderTop:tab===id?`2px solid ${B}`:"1px solid transparent",
-        borderRadius:"3px 3px 0 0",marginBottom:tab===id?-2:0,
-      }},id==="dados"?"Fichas de Dados":"Resultados do Cálculo"))
-    ),
-
-    h("div",{style:{padding:"12px"}},
-
-    tab==="dados"&&h("div",null,
-
-      h("div",{style:CARD},
-        h("div",{style:SH},h("p",{style:SHT},"Empresas")),
-        ...emps.map(e=>h("div",{key:e.id,style:{border:`1px solid ${e.reg==="SN"?"#90B5E0":GR}`,borderRadius:2,padding:10,marginBottom:8,background:e.reg==="SN"?"#F0F6FF":"#FAFAFA"}},
-          h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
-            h("input",{value:e.nome,onChange:ev=>upd(e.id,"nome",ev.target.value),style:{border:"none",background:"none",fontSize:13,fontWeight:"bold",color:TX,outline:"none",flex:1,fontFamily:"inherit",textAlign:"left"}}),
-            h("div",{style:{display:"flex",gap:5,alignItems:"center"}},
-              h("span",{style:PL(e.reg==="SN"?"#DBE9F8":"#EFEFEF",e.reg==="SN"?BD:MT,e.reg==="SN"?B:GR)},e.reg==="SN"?"SIMPLES NACIONAL":"LUCRO PRESUMIDO"),
-              emps.length>1&&h("button",{onClick:()=>delE(e.id),style:{background:"none",border:"none",cursor:"pointer",fontSize:15,color:RD,padding:"0 4px",fontFamily:"inherit",lineHeight:1}},"×")
-            )
-          ),
-          h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}},
-            h("div",null,
-              h("label",{style:LBL},"Regime tributário"),
-              h("select",{value:e.reg,onChange:ev=>upd(e.id,"reg",ev.target.value)},
-                h("option",{value:"LP"},"Lucro Presumido"),h("option",{value:"SN"},"Simples Nacional")
-              )
-            ),
-            e.reg==="LP"&&h("div",null,
-              h("label",{style:LBL},"Atividade"),
-              h("select",{value:e.at,onChange:ev=>upd(e.id,"at",parseInt(ev.target.value))},
-                ...ATIVS.map((a,i)=>h("option",{key:i,value:i},a))
-              )
-            ),
-            h("div",null,
-              h("label",{style:LBL},"Dividendos mensais (R$)"),
-              h(CIn,{val:e.div,set:v=>upd(e.id,"div",v),ph:"0"}),
-              e.div>0&&h("p",{style:HN(e.div>50000?AM:GN)},
-                e.div>50000?"IRRF retido: "+$$(e.div*.1)+"/mês"+(e.reg==="SN"?" — contestado (STF)":""):"Abaixo de R$ 50.000 — sem IRRF"
-              )
-            )
-          )
-        )),
-        h("button",{onClick:addE,style:{width:"100%",background:ALT,border:`1px dashed ${B}`,borderRadius:2,color:B,cursor:"pointer",padding:"6px",fontSize:12,fontWeight:"bold",fontFamily:"inherit",marginTop:4}},
-          "+ ADICIONAR EMPRESA"
-        )
-      ),
-
-      h("div",{style:CARD},
-        h("div",{style:SH},h("p",{style:SHT},"Rendimentos pessoais")),
-        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))",gap:12}},
-          h("div",null,h("label",{style:LBL},"Pró-labore mensal (R$)"),h(CIn,{val:pl,set:setPl,ph:"0"}),pl>0&&h("p",{style:HN()},"INSS: "+$$(r.inss)+" · IRRF: "+$$(r.irPLm)+"/mês")),
-          h("div",null,h("label",{style:LBL},"Aluguéis mensais (R$)"),h(CIn,{val:alug,set:setAlug,ph:"0"})),
-          h("div",null,h("label",{style:LBL},"CDB / Tesouro / Fundos (R$/ano)"),h(CIn,{val:cdb,set:setCdb,ph:"0"}),h("p",{style:HN(AM)},"Incluído na base do IRPFM")),
-          h("div",null,h("label",{style:LBL},"LCI / LCA / FII / Poupança (R$/ano)"),h(CIn,{val:isen,set:setIsen,ph:"0"}),h("p",{style:HN(GN)},"Excluídos do IRPFM (art. 16-A §1º)")),
-          h("div",null,h("label",{style:LBL},"Outros tributáveis (R$/ano)"),h(CIn,{val:outr,set:setOutr,ph:"0"}))
-        )
-      ),
-
-      h("div",{style:CARD},
-        h("div",{style:SH},h("p",{style:SHT},"Deduções")),
-        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))",gap:12}},
+  return h("div",{style:{background:BG,paddingBottom:isMobile?20:32,minHeight:"100vh"}},
+    h("div",{style:{maxWidth:1120,margin:"0 auto"}},
+      h("div",{style:{background:B,padding:isMobile?"10px 12px":"9px 14px",borderBottom:"2px solid #1A3F6F"}},
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",...headerStack}},
           h("div",null,
-            h("label",{style:LBL},"Dependentes"),
-            h("select",{value:dep,onChange:e=>setDep(parseInt(e.target.value))},
-              ...[0,1,2,3,4,5].map(d=>h("option",{key:d,value:d},d+" dependente"+(d!==1?"s":"")))
-            ),
-            dep>0&&h("p",{style:HN()},"Dedução: "+$$(dep*2275.08)+"/ano")
+            h("p",{style:{margin:0,fontSize:isMobile?17:15,fontWeight:"bold",color:"#fff",letterSpacing:".2px"}},"Calculadora IRPF / IRPFM 2026"),
+            h("p",{style:{margin:"2px 0 0",fontSize:isMobile?11:10,color:"rgba(255,255,255,.8)"}},"Lei 15.270/2025 · IN RFB 2.299/2025 · v1.1")
           ),
-          h("div",null,h("label",{style:LBL},"Despesas médicas (R$/ano)"),h(CIn,{val:med,set:setMed,ph:"0"}),h("p",{style:HN()},"Sem teto legal")),
-          h("div",null,h("label",{style:LBL},"Educação (R$/ano)"),h(CIn,{val:edu,set:setEdu,ph:"0"}),h("p",{style:HN()},"Teto: "+$$(3561.50)+"/pessoa")),
-          h("div",null,h("label",{style:LBL},"PGBL / prev. privada (R$/ano)"),h(CIn,{val:pgbl,set:setPgbl,ph:"0"}))
-        )
-      ),
-
-      h("div",{style:{...CARD,background:ALT,border:`1px solid #90B5E0`}},
-        h("div",{style:{...SH,background:"#C0D8EE"}},h("p",{style:SHT},"Opção pela tributação")),
-        h("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},
-          ...[["auto","Automático (mais vantajoso)"],["simplificada","Por Desconto Simplificado"],["completa","Por Deduções Legais"]].map(([v,lb])=>
-            h("label",{key:v,style:{
-              display:"flex",alignItems:"center",gap:5,padding:"7px 12px",
-              background:decl===v?WH:BG,border:`1px solid ${decl===v?B:GR}`,
-              borderRadius:2,cursor:"pointer",fontSize:12,
-              color:decl===v?BD:TX,fontWeight:decl===v?"bold":"normal",flex:1,minWidth:130,
-            }},
-              h("input",{type:"radio",name:"decl",value:v,checked:decl===v,onChange:()=>setDecl(v)}),
-              lb
-            )
-          )
-        ),
-        h("p",{style:{margin:"7px 0 0",fontSize:11,color:MT}},
-          "Simplificada: 20% dos rend. tributáveis, teto R$ 17.640 (2026) · Completa: dependentes, médicas, educação, PGBL, INSS."
-        )
-      ),
-
-      h("button",{onClick:()=>setTab("resultados"),style:{
-        width:"100%",padding:"10px",background:B,border:"1px solid "+BD,
-        borderRadius:2,color:"#fff",fontSize:14,fontWeight:"bold",cursor:"pointer",fontFamily:"inherit",
-        marginTop:4,letterSpacing:".5px",
-      }},"▶  CALCULAR IMPOSTO")
-    ),
-
-    tab==="resultados"&&h("div",null,
-      r.sn&&h("div",{style:{background:"#FFF8E1",border:"1px solid #E6AE00",borderLeft:"4px solid #E65100",borderRadius:2,padding:"8px 12px",marginBottom:8,fontSize:12,color:"#5D3200",lineHeight:1.5}},
-        h("strong",null,"▲ Simples Nacional — controvérsia jurídica. "),
-        "RFB aplica IRRF de 10% (IN 2.299/2025, art. 23-A). Doutrina: art. 14 da LC 123/2006. ADIs 7912/7914/7917 pendentes no STF."
-      ),
-      r.irpfmOn&&h("div",{style:{background:"#E3F2FD",border:"1px solid #64B5F6",borderLeft:"4px solid #2968B3",borderRadius:2,padding:"8px 12px",marginBottom:8,fontSize:12,color:BD,lineHeight:1.5}},
-        "ℹ Renda Global supera R$ 600.000 — IRPFM ativado. Será apurado na DAA de 2027. Regulamentação complementar da RFB pendente."
-      ),
-
-      h("div",{style:CARD},
-        h("div",{style:SH},h("p",{style:SHT},"IRRF por empresa")),
-        ...r.EMP.map(e=>h("div",{key:e.id,style:{border:`1px solid ${GR}`,borderRadius:2,marginBottom:6,overflow:"hidden"}},
-          h("div",{style:{background:e.reg==="SN"?"#D0E4F5":"#E4E4E4",padding:"5px 10px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
-            h("strong",{style:{fontSize:12,color:e.reg==="SN"?BD:TX}},e.nome),
-            h("div",{style:{display:"flex",gap:5}},
-              h("span",{style:PL(e.reg==="SN"?"#BDD6F0":"#D8D8D8",e.reg==="SN"?BD:MT,e.reg==="SN"?B:GR)},e.reg==="SN"?"SIMPLES":"LP"),
-              e.ret&&h("span",{style:PL("#FFF3CD","#6D4C00","#D4A000")},"IRRF RETIDO"),
-              !e.ret&&e.div>0&&h("span",{style:PL("#E8F5E9",GN,"#4CAF50")},"SEM RETENÇÃO")
-            )
-          ),
-          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}},
-            [["Dividendos mensais",$$(e.div),TX],["Dividendos anuais",$$(e.div*12),TX],["IRRF retido anual",$$(e.irrf*12),e.ret?AM:GN]].map(([l,v,c],i)=>
-              h("div",{key:l,style:{padding:"6px 10px",background:i%2?ALT:WH,borderLeft:i>0?`1px solid ${GR}`:"none"}},
-                h("span",{style:{display:"block",fontSize:10,color:MT,marginBottom:2,textTransform:"uppercase",fontWeight:"bold"}},l),
-                h("span",{style:{...MN,fontSize:12,fontWeight:"bold",color:c}},v)
-              )
-            )
-          )
-        )),
-        r.frag&&h("div",{style:{background:"#E3F2FD",border:"1px solid #64B5F6",borderLeft:`4px solid ${B}`,borderRadius:2,padding:"7px 10px",marginTop:4,fontSize:12,color:BD,lineHeight:1.5}},
-          "Dividendos combinados: ",h("strong",null,$$(r.sumDivM)),"/mês — cada CNPJ individualmente abaixo de R$ 50k. Sem IRRF mensal. ",h("strong",null,$$(r.sumDivA))," anuais integram a base do IRPFM."
-        )
-      ),
-
-      h("div",{style:CARD},
-        h("div",{style:SH},h("p",{style:SHT},"Composição da Renda Global (base do IRPFM)")),
-        h("div",{style:{border:`1px solid ${GR}`,borderRadius:2,overflow:"hidden"}},
-          [["Pró-labore (anual)",r.rgPL],["Dividendos (anual — todas as empresas)",r.rgDIV],["Aluguéis (anual)",r.rgAL],["CDB / Tesouro / fundos tributáveis",r.rgCDB],["Outros rendimentos tributáveis",r.rgOT]]
-            .map(([l,v],i)=>h("div",{key:l,style:{display:"flex",justifyContent:"space-between",padding:"6px 10px",background:i%2?ALT:WH,borderBottom:"1px solid #D8E8F5"}},
-              h("span",{style:{fontSize:13,color:MT}},l),
-              h("span",{style:{fontSize:13,...MN,fontWeight:v>0?"bold":"normal",color:TX}},$$(v))
-            )),
-          r.isen>0&&h("div",{style:{display:"flex",justifyContent:"space-between",padding:"6px 10px",background:"#F0FAF0",borderBottom:"1px solid #C8E6C9"}},
-            h("span",{style:{fontSize:13,color:GN}},"LCI / LCA / FII / Poupança (excluídos — art. 16-A §1º)"),
-            h("span",{style:{fontSize:13,...MN,color:GN}},`– ${$$(r.isen)}`)
-          ),
-          h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",background:B}},
-            h("strong",{style:{fontSize:12,color:"#fff",textTransform:"uppercase",letterSpacing:".5px"}},"Renda Global Total"),
-            h("strong",{style:{fontSize:18,...MN,color:"#fff"}},$$(r.RG))
-          )
-        ),
-        h("div",{style:{marginTop:12}},
-          h("div",{style:{display:"flex",marginBottom:3}},
-            BSEGS.map((s,i)=>h("div",{key:i,style:{width:`${(s.to-s.from)/BMAX*100}%`,textAlign:"center",fontSize:10,fontWeight:r.RG>=s.from&&r.RG<s.to?"bold":"normal",color:r.RG>=s.from?TX:"#BBB"}},s.label))
-          ),
-          h("div",{style:{position:"relative",height:14}},
-            h("div",{style:{display:"flex",height:14,border:`1px solid ${GR}`,borderRadius:2,overflow:"hidden"}},
-              BSEGS.map((s,i)=>h("div",{key:i,style:{width:`${(s.to-s.from)/BMAX*100}%`,background:r.RG>=s.to?s.bg:r.RG>s.from?s.bg+"CC":"#DCDCDC",borderLeft:i>0?"1.5px solid rgba(255,255,255,.5)":"none"}}))
-            ),
-            r.RG>0&&h("div",{style:{position:"absolute",left:`${mkrPct}%`,top:-3,height:20,width:2,background:TX,transform:"translateX(-50%)",borderRadius:1}}),
-            r.RG>0&&h("div",{style:{position:"absolute",left:`${mkrPct}%`,top:-11,transform:"translateX(-50%)",fontSize:9,color:TX,lineHeight:1}},"▼")
-          ),
-          h("div",{style:{position:"relative",height:24,marginTop:3}},
-            h("span",{style:{position:"absolute",left:0,fontSize:10,color:MT}},"R$ 0"),
-            h("span",{style:{position:"absolute",left:"50%",transform:"translateX(-50%)",fontSize:10,color:MT}},"R$ 600k"),
-            h("span",{style:{position:"absolute",right:0,fontSize:10,color:MT}},"R$ 1,2M"),
-            r.RG>0&&r.RG<=BMAX&&h("div",{style:{position:"absolute",left:`${Math.min(90,Math.max(10,mkrPct))}%`,transform:"translateX(-50%)",top:12,background:WH,border:`1px solid ${GR}`,borderRadius:2,padding:"1px 5px",fontSize:10,color:TX,fontWeight:"bold",whiteSpace:"nowrap",...MN}},$0(r.RG)),
-            r.RG>BMAX&&h("span",{style:{position:"absolute",right:0,top:12,fontSize:10,color:RD,fontWeight:"bold",...MN}},$0(r.RG)+" →")
+          h("div",{style:{display:"flex",gap:5,flexWrap:"wrap",justifyContent:isMobile?"flex-start":"flex-end"}},
+            r.irpfmOn&&h("span",{style:PL("#FDECEA",RD,"#E53935")},"IRPFM ATIVO"),
+            !r.irpfmOn&&r.RG>0&&h("span",{style:PL("#E8F5E9",GN,"#4CAF50")},"IRPFM INATIVO"),
+            r.sn&&h("span",{style:PL("#E8F0FF",BD,"#90B5E0")},"SIMPLES NAC.")
           )
         )
       ),
 
-      h("div",{style:CARD},
-        h("div",{style:SH},h("p",{style:SHT},"Comparativo: duas trilhas de tributação")),
-        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}},
-          h("div",{style:{border:`${r.trilha==="IR tradicional"?"2px solid "+B:"1px solid "+GR}`,borderRadius:3,overflow:"hidden"}},
-            h("div",{style:{background:r.trilha==="IR tradicional"?B:"#D4D4D4",padding:"6px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
-              h("span",{style:{fontSize:12,fontWeight:"bold",color:r.trilha==="IR tradicional"?"#fff":"#444"}},"Trilha A — IR Tradicional"),
-              r.trilha==="IR tradicional"&&h("span",{style:{fontSize:10,fontWeight:"bold",color:"rgba(255,255,255,.9)",background:"rgba(0,0,0,.18)",padding:"1px 7px",borderRadius:2}},"VENCE")
-            ),
-            h("div",{style:{background:WH,padding:"10px 12px"}},
-              h("div",{style:SP},h("span",{style:{fontSize:12,color:MT}},"Rendimentos tributáveis"),h("span",{style:{fontSize:12,...MN}},$$(r.RT))),
-              h("div",{style:SP},h("span",{style:{fontSize:12,color:MT}},`Dedução (${r.tipo})`),h("span",{style:{fontSize:12,...MN}},`– ${$$(r.dT)}`)),
-              h("div",{style:{...SP,marginBottom:8}},h("span",{style:{fontSize:12,color:MT}},"Base de cálculo"),h("span",{style:{fontSize:12,...MN}},$$(r.bT))),
-              r.bT>0&&h("div",{style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"7px 9px",marginBottom:8}},
-                h("p",{style:{margin:"0 0 4px",fontSize:10,fontWeight:"bold",color:BD,textTransform:"uppercase",letterSpacing:".5px"}},"Cálculo marginal por faixa:"),
-                h("div",{style:{display:"grid",gridTemplateColumns:"1fr 72px 65px",fontSize:10,fontWeight:"bold",color:MT,textTransform:"uppercase",borderBottom:`1px solid ${GR}`,paddingBottom:3,marginBottom:3}},
-                  ["Faixa","Valor na faixa","Imposto"].map((t,i)=>h("span",{key:i,style:{textAlign:i>0?"right":"left"}},t))
+      h("div",{style:{background:"#C8DDED",borderBottom:`2px solid ${B}`,display:"flex",padding:"0 8px"}},
+        ["dados","resultados"].map(id=>h("button",{key:id,onClick:()=>setTab(id),style:{
+          flex:1,padding:isMobile?"10px 8px":"6px 18px",cursor:"pointer",fontSize:isMobile?13:13,fontWeight:tab===id?"bold":"normal",fontFamily:"inherit",
+          background:tab===id?WH:"transparent",color:tab===id?B:MT,
+          border:`1px solid ${tab===id?B:"transparent"}`,borderBottom:"none",
+          borderTop:tab===id?`2px solid ${B}`:"1px solid transparent",
+          borderRadius:"3px 3px 0 0",marginBottom:tab===id?-2:0,minWidth:0,
+        }},id==="dados"?"Fichas de Dados":"Resultados do Cálculo"))
+      ),
+
+      h("div",{style:{padding:pagePad}},
+        tab==="dados"&&h("div",null,
+          h("div",{style:CARD},
+            h("div",{style:SH},h("p",{style:SHT},"Empresas")),
+            ...emps.map(e=>h("div",{key:e.id,style:{border:`1px solid ${e.reg==="SN"?"#90B5E0":GR}`,borderRadius:2,padding:10,marginBottom:8,background:e.reg==="SN"?"#F0F6FF":"#FAFAFA"}},
+              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",gap:isMobile?8:0,marginBottom:8}},
+                h("input",{value:e.nome,onChange:ev=>upd(e.id,"nome",ev.target.value),style:{border:"none",background:"none",fontSize:13,fontWeight:"bold",color:TX,outline:"none",flex:1,fontFamily:"inherit",textAlign:"left",width:"100%"}}),
+                h("div",{style:{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}},
+                  h("span",{style:PL(e.reg==="SN"?"#DBE9F8":"#EFEFEF",e.reg==="SN"?BD:MT,e.reg==="SN"?B:GR)},e.reg==="SN"?"SIMPLES NACIONAL":"LUCRO PRESUMIDO"),
+                  emps.length>1&&h("button",{onClick:()=>delE(e.id),style:{background:"none",border:"none",cursor:"pointer",fontSize:20,color:RD,padding:"0 4px",fontFamily:"inherit",lineHeight:1}},"×")
+                )
+              ),
+              h("div",{style:{display:"grid",gridTemplateColumns:companyGrid,gap:10}},
+                h("div",null,
+                  h("label",{style:LBL},"Regime tributário"),
+                  h("select",{value:e.reg,onChange:ev=>upd(e.id,"reg",ev.target.value)},
+                    h("option",{value:"LP"},"Lucro Presumido"),h("option",{value:"SN"},"Simples Nacional")
+                  )
                 ),
-                ...r.bkdT.map((row,i)=>h("div",{key:i,style:{display:"grid",gridTemplateColumns:"1fr 72px 65px",padding:"3px 0",borderBottom:i<r.bkdT.length-1?"1px solid #D8E8F5":"none",background:i%2?WH:"transparent"}},
-                  h("span",{style:{fontSize:11,color:MT}},row.q===0?"0% — isento":`${(row.q*100).toFixed(1).replace(".",",")}%`),
-                  h("span",{style:{fontSize:11,...MN,textAlign:"right",color:TX}},$0(row.amt)),
-                  h("span",{style:{fontSize:11,...MN,textAlign:"right",fontWeight:"bold",color:row.tax>0?TX:MT}},row.tax>0?$$(row.tax):"—")
+                e.reg==="LP"&&h("div",null,
+                  h("label",{style:LBL},"Atividade"),
+                  h("select",{value:e.at,onChange:ev=>upd(e.id,"at",parseInt(ev.target.value))},
+                    ...ATIVS.map((a,i)=>h("option",{key:i,value:i},a))
+                  )
+                ),
+                h("div",null,
+                  h("label",{style:LBL},"Dividendos mensais (R$)"),
+                  h(CIn,{val:e.div,set:v=>upd(e.id,"div",v),ph:"0"}),
+                  e.div>0&&h("p",{style:HN(e.div>50000?AM:GN)},
+                    e.div>50000?"IRRF retido: "+$$(e.div*.1)+"/mês"+(e.reg==="SN"?" — contestado (STF)":""):"Abaixo de R$ 50.000 — sem IRRF"
+                  )
+                )
+              )
+            )),
+            h("button",{onClick:addE,style:{width:"100%",background:ALT,border:`1px dashed ${B}`,borderRadius:2,color:B,cursor:"pointer",padding:isMobile?"10px 8px":"6px",fontSize:12,fontWeight:"bold",fontFamily:"inherit",marginTop:4}},
+              "+ ADICIONAR EMPRESA"
+            )
+          ),
+
+          h("div",{style:CARD},
+            h("div",{style:SH},h("p",{style:SHT},"Rendimentos pessoais")),
+            h("div",{style:{display:"grid",gridTemplateColumns:formGrid,gap:12}},
+              h("div",null,h("label",{style:LBL},"Pró-labore mensal (R$)"),h(CIn,{val:pl,set:setPl,ph:"0"}),pl>0&&h("p",{style:HN()},"INSS: "+$$(r.inss)+" · IRRF: "+$$(r.irPLm)+"/mês")),
+              h("div",null,h("label",{style:LBL},"Aluguéis mensais (R$)"),h(CIn,{val:alug,set:setAlug,ph:"0"})),
+              h("div",null,h("label",{style:LBL},"CDB / Tesouro / Fundos (R$/ano)"),h(CIn,{val:cdb,set:setCdb,ph:"0"}),h("p",{style:HN(AM)},"Incluído na base do IRPFM")),
+              h("div",null,h("label",{style:LBL},"LCI / LCA / FII / Poupança (R$/ano)"),h(CIn,{val:isen,set:setIsen,ph:"0"}),h("p",{style:HN(GN)},"Excluídos do IRPFM (art. 16-A §1º)")),
+              h("div",null,h("label",{style:LBL},"Outros tributáveis (R$/ano)"),h(CIn,{val:outr,set:setOutr,ph:"0"}))
+            )
+          ),
+
+          h("div",{style:CARD},
+            h("div",{style:SH},h("p",{style:SHT},"Deduções")),
+            h("div",{style:{display:"grid",gridTemplateColumns:formGrid,gap:12}},
+              h("div",null,
+                h("label",{style:LBL},"Dependentes"),
+                h("select",{value:dep,onChange:e=>setDep(parseInt(e.target.value))},
+                  ...[0,1,2,3,4,5].map(d=>h("option",{key:d,value:d},d+" dependente"+(d!==1?"s":"")))
+                ),
+                dep>0&&h("p",{style:HN()},"Dedução: "+$$(dep*2275.08)+"/ano")
+              ),
+              h("div",null,h("label",{style:LBL},"Despesas médicas (R$/ano)"),h(CIn,{val:med,set:setMed,ph:"0"}),h("p",{style:HN()},"Sem teto legal")),
+              h("div",null,h("label",{style:LBL},"Educação (R$/ano)"),h(CIn,{val:edu,set:setEdu,ph:"0"}),h("p",{style:HN()},"Teto: "+$$(3561.50)+"/pessoa")),
+              h("div",null,h("label",{style:LBL},"PGBL / prev. privada (R$/ano)"),h(CIn,{val:pgbl,set:setPgbl,ph:"0"}))
+            )
+          ),
+
+          h("div",{style:{...CARD,background:ALT,border:`1px solid #90B5E0`}},
+            h("div",{style:{...SH,background:"#C0D8EE"}},h("p",{style:SHT},"Opção pela tributação")),
+            h("div",{style:{display:"flex",gap:8,flexWrap:"wrap",flexDirection:isMobile?"column":"row"}},
+              ...[["auto","Automático (mais vantajoso)"],["simplificada","Por Desconto Simplificado"],["completa","Por Deduções Legais"]].map(([v,lb])=>
+                h("label",{key:v,style:{
+                  display:"flex",alignItems:"center",gap:6,padding:isMobile?"10px 12px":"7px 12px",
+                  background:decl===v?WH:BG,border:`1px solid ${decl===v?B:GR}`,
+                  borderRadius:2,cursor:"pointer",fontSize:12,
+                  color:decl===v?BD:TX,fontWeight:decl===v?"bold":"normal",flex:1,minWidth:isMobile?"100%":130,
+                }},
+                  h("input",{type:"radio",name:"decl",value:v,checked:decl===v,onChange:()=>setDecl(v)}),
+                  lb
+                )
+              )
+            ),
+            h("p",{style:{margin:"7px 0 0",fontSize:isMobile?10:11,color:MT,lineHeight:1.5}},
+              "Simplificada: 20% dos rend. tributáveis, teto R$ 17.640 (2026) · Completa: dependentes, médicas, educação, PGBL, INSS."
+            )
+          ),
+
+          h("button",{onClick:()=>setTab("resultados"),style:{
+            width:"100%",padding:isMobile?"12px":"10px",background:B,border:"1px solid "+BD,
+            borderRadius:2,color:"#fff",fontSize:isMobile?15:14,fontWeight:"bold",cursor:"pointer",fontFamily:"inherit",
+            marginTop:4,letterSpacing:".5px",
+          }},"▶  CALCULAR IMPOSTO")
+        ),
+
+        tab==="resultados"&&h("div",null,
+          r.sn&&h("div",{style:{background:"#FFF8E1",border:"1px solid #E6AE00",borderLeft:"4px solid #E65100",borderRadius:2,padding:isMobile?"10px":"8px 12px",marginBottom:8,fontSize:12,color:"#5D3200",lineHeight:1.5}},
+            h("strong",null,"▲ Simples Nacional — controvérsia jurídica. "),
+            "RFB aplica IRRF de 10% (IN 2.299/2025, art. 23-A). Doutrina: art. 14 da LC 123/2006. ADIs 7912/7914/7917 pendentes no STF."
+          ),
+          r.irpfmOn&&h("div",{style:{background:"#E3F2FD",border:"1px solid #64B5F6",borderLeft:"4px solid #2968B3",borderRadius:2,padding:isMobile?"10px":"8px 12px",marginBottom:8,fontSize:12,color:BD,lineHeight:1.5}},
+            "ℹ Renda Global supera R$ 600.000 — IRPFM ativado. Será apurado na DAA de 2027. Regulamentação complementar da RFB pendente."
+          ),
+
+          h("div",{style:CARD},
+            h("div",{style:SH},h("p",{style:SHT},"IRRF por empresa")),
+            ...r.EMP.map(e=>h("div",{key:e.id,style:{border:`1px solid ${GR}`,borderRadius:2,marginBottom:6,overflow:"hidden"}},
+              h("div",{style:{background:e.reg==="SN"?"#D0E4F5":"#E4E4E4",padding:"7px 10px",display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",gap:isMobile?6:0}},
+                h("strong",{style:{fontSize:12,color:e.reg==="SN"?BD:TX}},e.nome),
+                h("div",{style:{display:"flex",gap:5,flexWrap:"wrap"}},
+                  h("span",{style:PL(e.reg==="SN"?"#BDD6F0":"#D8D8D8",e.reg==="SN"?BD:MT,e.reg==="SN"?B:GR)},e.reg==="SN"?"SIMPLES":"LP"),
+                  e.ret&&h("span",{style:PL("#FFF3CD","#6D4C00","#D4A000")},"IRRF RETIDO"),
+                  !e.ret&&e.div>0&&h("span",{style:PL("#E8F5E9",GN,"#4CAF50")},"SEM RETENÇÃO")
+                )
+              ),
+              h("div",{style:{display:"grid",gridTemplateColumns:companyResultGrid}},
+                [["Dividendos mensais",$$(e.div),TX],["Dividendos anuais",$$(e.div*12),TX],["IRRF retido anual",$$(e.irrf*12),e.ret?AM:GN]].map(([l,v,c],i)=>
+                  h("div",{key:l,style:{padding:"6px 10px",background:i%2?ALT:WH,borderLeft:!isMobile&&i>0?`1px solid ${GR}`:"none",borderTop:isMobile&&i>0?`1px solid ${GR}`:"none"}},
+                    h("span",{style:{display:"block",fontSize:10,color:MT,marginBottom:2,textTransform:"uppercase",fontWeight:"bold"}},l),
+                    h("span",{style:{...MN,fontSize:12,fontWeight:"bold",color:c}},v)
+                  )
+                )
+              )
+            )),
+            r.frag&&h("div",{style:{background:"#E3F2FD",border:"1px solid #64B5F6",borderLeft:`4px solid ${B}`,borderRadius:2,padding:"7px 10px",marginTop:4,fontSize:12,color:BD,lineHeight:1.5}},
+              "Dividendos combinados: ",h("strong",null,$$(r.sumDivM)),"/mês — cada CNPJ individualmente abaixo de R$ 50k. Sem IRRF mensal. ",h("strong",null,$$(r.sumDivA))," anuais integram a base do IRPFM."
+            )
+          ),
+
+          h("div",{style:CARD},
+            h("div",{style:SH},h("p",{style:SHT},"Composição da Renda Global (base do IRPFM)")),
+            h("div",{style:{border:`1px solid ${GR}`,borderRadius:2,overflow:"hidden"}},
+              [["Pró-labore (anual)",r.rgPL],["Dividendos (anual — todas as empresas)",r.rgDIV],["Aluguéis (anual)",r.rgAL],["CDB / Tesouro / fundos tributáveis",r.rgCDB],["Outros rendimentos tributáveis",r.rgOT]]
+                .map(([l,v],i)=>h("div",{key:l,style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"6px 10px",background:i%2?ALT:WH,borderBottom:"1px solid #D8E8F5"}},
+                  h("span",{style:{fontSize:13,color:MT}},l),
+                  h("span",{style:{fontSize:13,...MN,fontWeight:v>0?"bold":"normal",color:TX}},$$(v))
                 )),
-                h("div",{style:{display:"flex",justifyContent:"space-between",paddingTop:4,marginTop:3,borderTop:`2px solid ${B}`}},
-                  h("span",{style:{fontSize:11,fontWeight:"bold",color:BD,textTransform:"uppercase"}},"Subtotal bruto"),
-                  h("span",{style:{fontSize:11,...MN,fontWeight:"bold"}},$$(r.irFnbr))
-                )
+              r.isen>0&&h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"6px 10px",background:"#F0FAF0",borderBottom:"1px solid #C8E6C9"}},
+                h("span",{style:{fontSize:13,color:GN}},"LCI / LCA / FII / Poupança (excluídos — art. 16-A §1º)"),
+                h("span",{style:{fontSize:13,...MN,color:GN}},`– ${$$(r.isen)}`)
               ),
-              r.redFn>0&&h("div",{style:{...SP}},h("span",{style:{fontSize:12,color:GN}},"(–) Redutor Lei 15.270/2025"),h("span",{style:{fontSize:12,...MN,color:GN}},`– ${$$(r.redFn)}`)),
-              h("div",{style:{marginTop:10,borderTop:`2px solid ${r.trilha==="IR tradicional"?B:"#CCC"}`,paddingTop:6}},
-                h("p",{style:{margin:"0 0 2px",fontSize:10,fontWeight:"bold",color:MT,textTransform:"uppercase",letterSpacing:".3px"}},"IR Tradicional Apurado"),
-                h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:20,color:TX}},$$(r.irFn))
+              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"8px 10px",background:B}},
+                h("strong",{style:{fontSize:12,color:"#fff",textTransform:"uppercase",letterSpacing:".5px"}},"Renda Global Total"),
+                h("strong",{style:{fontSize:isMobile?16:18,...MN,color:"#fff"}},$$(r.RG))
+              )
+            ),
+            h("div",{style:{marginTop:12}},
+              h("div",{style:{display:"flex",marginBottom:3}},
+                BSEGS.map((s,i)=>h("div",{key:i,style:{width:`${(s.to-s.from)/BMAX*100}%`,textAlign:"center",fontSize:isMobile?9:10,fontWeight:r.RG>=s.from&&r.RG<s.to?"bold":"normal",color:r.RG>=s.from?TX:"#BBB"}},s.label))
+              ),
+              h("div",{style:{position:"relative",height:14}},
+                h("div",{style:{display:"flex",height:14,border:`1px solid ${GR}`,borderRadius:2,overflow:"hidden"}},
+                  BSEGS.map((s,i)=>h("div",{key:i,style:{width:`${(s.to-s.from)/BMAX*100}%`,background:r.RG>=s.to?s.bg:r.RG>s.from?s.bg+"CC":"#DCDCDC",borderLeft:i>0?"1.5px solid rgba(255,255,255,.5)":"none"}}))
+                ),
+                r.RG>0&&h("div",{style:{position:"absolute",left:`${mkrPct}%`,top:-3,height:20,width:2,background:TX,transform:"translateX(-50%)",borderRadius:1}}),
+                r.RG>0&&h("div",{style:{position:"absolute",left:`${mkrPct}%`,top:-11,transform:"translateX(-50%)",fontSize:9,color:TX,lineHeight:1}},"▼")
+              ),
+              h("div",{style:{position:"relative",height:24,marginTop:3}},
+                h("span",{style:{position:"absolute",left:0,fontSize:10,color:MT}},"R$ 0"),
+                h("span",{style:{position:"absolute",left:"50%",transform:"translateX(-50%)",fontSize:10,color:MT}},"R$ 600k"),
+                h("span",{style:{position:"absolute",right:0,fontSize:10,color:MT}},"R$ 1,2M"),
+                r.RG>0&&r.RG<=BMAX&&h("div",{style:{position:"absolute",left:`${Math.min(90,Math.max(10,mkrPct))}%`,transform:"translateX(-50%)",top:12,background:WH,border:`1px solid ${GR}`,borderRadius:2,padding:"1px 5px",fontSize:10,color:TX,fontWeight:"bold",whiteSpace:"nowrap",...MN}},$0(r.RG)),
+                r.RG>BMAX&&h("span",{style:{position:"absolute",right:0,top:12,fontSize:10,color:RD,fontWeight:"bold",...MN}},$0(r.RG)+" →")
               )
             )
           ),
-          h("div",{style:{border:`${r.trilha==="IRPFM"?"2px solid "+RD:"1px solid "+GR}`,borderRadius:3,overflow:"hidden"}},
-            h("div",{style:{background:r.trilha==="IRPFM"?RD:"#D4D4D4",padding:"6px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
-              h("span",{style:{fontSize:12,fontWeight:"bold",color:r.trilha==="IRPFM"?"#fff":"#444"}},"Trilha B — IRPFM"),
-              r.trilha==="IRPFM"&&h("span",{style:{fontSize:10,fontWeight:"bold",color:"rgba(255,255,255,.9)",background:"rgba(0,0,0,.18)",padding:"1px 7px",borderRadius:2}},"VENCE")
-            ),
-            h("div",{style:{background:WH,padding:"10px 12px"}},
-              h("div",{style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"9px 10px",marginBottom:10}},
-                r.irpfmFx===1&&h("div",null,
-                  h("div",{style:{marginBottom:6}},h("span",{style:PL("#E8F5E9",GN,"#4CAF50")},"FAIXA 1 — ISENÇÃO")),
-                  h("p",{style:{margin:"0 0 2px",fontSize:12,color:MT}},"Condição: RG ≤ R$ 600.000 → alíquota 0%"),
-                  h("p",{style:{margin:0,fontSize:12,...MN,color:MT}},$0(r.RG)+" ≤ R$ 600.000 → IRPFM = R$ 0")
+
+          h("div",{style:CARD},
+            h("div",{style:SH},h("p",{style:SHT},"Comparativo: duas trilhas de tributação")),
+            h("div",{style:{display:"grid",gridTemplateColumns:compareGrid,gap:10}},
+              h("div",{style:{border:`${r.trilha==="IR tradicional"?"2px solid "+B:"1px solid "+GR}`,borderRadius:3,overflow:"hidden"}},
+                h("div",{style:{background:r.trilha==="IR tradicional"?B:"#D4D4D4",padding:"6px 12px",display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",gap:isMobile?4:0}},
+                  h("span",{style:{fontSize:12,fontWeight:"bold",color:r.trilha==="IR tradicional"?"#fff":"#444"}},"Trilha A — IR Tradicional"),
+                  r.trilha==="IR tradicional"&&h("span",{style:{fontSize:10,fontWeight:"bold",color:"rgba(255,255,255,.9)",background:"rgba(0,0,0,.18)",padding:"1px 7px",borderRadius:2}},"VENCE")
                 ),
-                r.irpfmFx===2&&h("div",null,
-                  h("div",{style:{display:"flex",alignItems:"center",gap:5,marginBottom:7}},
-                    h("span",{style:PL("#FFF3CD","#6D4C00","#D4A000")},"FAIXA 2 — INTERMEDIÁRIA"),
-                    h("span",{style:{fontSize:10,color:MT}},"R$ 600k – R$ 1,2M")
+                h("div",{style:{background:WH,padding:"10px 12px"}},
+                  h("div",{style:SP},h("span",{style:{fontSize:12,color:MT}},"Rendimentos tributáveis"),h("span",{style:{fontSize:12,...MN}},$$(r.RT))),
+                  h("div",{style:SP},h("span",{style:{fontSize:12,color:MT}},`Dedução (${r.tipo})`),h("span",{style:{fontSize:12,...MN}},`– ${$$(r.dT)}`)),
+                  h("div",{style:{...SP,marginBottom:8}},h("span",{style:{fontSize:12,color:MT}},"Base de cálculo"),h("span",{style:{fontSize:12,...MN}},$$(r.bT))),
+                  r.bT>0&&h("div",{style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"7px 9px",marginBottom:8,overflowX:"auto"}},
+                    h("p",{style:{margin:"0 0 4px",fontSize:10,fontWeight:"bold",color:BD,textTransform:"uppercase",letterSpacing:".5px"}},"Cálculo marginal por faixa:"),
+                    h("div",{style:{display:"grid",gridTemplateColumns:taxTableCols,fontSize:10,fontWeight:"bold",color:MT,textTransform:"uppercase",borderBottom:`1px solid ${GR}`,paddingBottom:3,marginBottom:3,columnGap:8,minWidth:isNarrow?320:"auto"}},
+                      ["Faixa","Valor na faixa","Imposto"].map((t,i)=>h("span",{key:i,style:{textAlign:i>0?"right":"left"}},t))
+                    ),
+                    ...r.bkdT.map((row,i)=>h("div",{key:i,style:{display:"grid",gridTemplateColumns:taxTableCols,padding:"3px 0",borderBottom:i<r.bkdT.length-1?"1px solid #D8E8F5":"none",background:i%2?WH:"transparent",columnGap:8,minWidth:isNarrow?320:"auto"}},
+                      h("span",{style:{fontSize:11,color:MT}},row.q===0?"0% — isento":`${(row.q*100).toFixed(1).replace(".",",")}%`),
+                      h("span",{style:{fontSize:11,...MN,textAlign:"right",color:TX}},$0(row.amt)),
+                      h("span",{style:{fontSize:11,...MN,textAlign:"right",fontWeight:"bold",color:row.tax>0?TX:MT}},row.tax>0?$$(row.tax):"—")
+                    )),
+                    h("div",{style:{display:"flex",justifyContent:"space-between",paddingTop:4,marginTop:3,borderTop:`2px solid ${B}`,...wideRow}},
+                      h("span",{style:{fontSize:11,fontWeight:"bold",color:BD,textTransform:"uppercase"}},"Subtotal bruto"),
+                      h("span",{style:{fontSize:11,...MN,fontWeight:"bold"}},$$(r.irFnbr))
+                    )
                   ),
-                  h("p",{style:{margin:"0 0 1px",fontSize:11,color:MT}},"Alíquota = RG ÷ 60.000 − 10"),
-                  h("p",{style:{margin:"0 0 1px",fontSize:12,...MN}},"= "+$0(r.RG)+" ÷ 60.000 − 10"),
-                  h("p",{style:{margin:"0 0 1px",fontSize:12,...MN}},"= "+(r.RG/60000).toFixed(4).replace(".",",")+" − 10"),
-                  h("p",{style:{margin:"0 0 7px",fontSize:12,...MN,fontWeight:"bold"}},"= "+r.aliqM.toFixed(4).replace(".",",")+"%"),
-                  h("p",{style:{margin:"0 0 1px",fontSize:11,color:MT}},"IRPFM = "+$0(r.RG)+" × "+r.aliqM.toFixed(4).replace(".",",")+"%"),
-                  h("p",{style:{margin:0,fontSize:13,...MN,fontWeight:"bold",color:RD}},$$(r.IRPFM))
-                ),
-                r.irpfmFx===3&&h("div",null,
-                  h("div",{style:{display:"flex",alignItems:"center",gap:5,marginBottom:7}},
-                    h("span",{style:PL("#FDECEA",RD,"#E53935")},"FAIXA 3 — ALÍQUOTA MÁXIMA"),
-                    h("span",{style:{fontSize:10,color:MT}},"RG > R$ 1,2M")
-                  ),
-                  h("p",{style:{margin:"0 0 1px",fontSize:11,color:MT}},"RG > R$ 1.200.000 → alíquota fixa: 10%"),
-                  h("p",{style:{margin:"0 0 1px",fontSize:12,...MN}},"IRPFM = "+$0(r.RG)+" × 10%"),
-                  h("p",{style:{margin:0,fontSize:13,...MN,fontWeight:"bold",color:RD}},$$(r.IRPFM))
+                  r.redFn>0&&h("div",{style:{...SP}},h("span",{style:{fontSize:12,color:GN}},"(–) Redutor Lei 15.270/2025"),h("span",{style:{fontSize:12,...MN,color:GN}},`– ${$$(r.redFn)}`)),
+                  h("div",{style:{marginTop:10,borderTop:`2px solid ${r.trilha==="IR tradicional"?B:"#CCC"}`,paddingTop:6}},
+                    h("p",{style:{margin:"0 0 2px",fontSize:10,fontWeight:"bold",color:MT,textTransform:"uppercase",letterSpacing:".3px"}},"IR Tradicional Apurado"),
+                    h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:isMobile?18:20,color:TX}},$$(r.irFn))
+                  )
                 )
               ),
-              h("div",{style:SP},h("span",{style:{fontSize:12,color:MT}},"Renda Global"),h("span",{style:{fontSize:12,...MN}},$$(r.RG))),
-              h("div",{style:SP},h("span",{style:{fontSize:12,color:MT}},"Alíquota efetiva mínima"),h("span",{style:{fontSize:12,...MN,fontWeight:"bold"}},r.aliqM.toFixed(2).replace(".",",")+"%")),
-              h("div",{style:{marginTop:10,borderTop:`2px solid ${r.trilha==="IRPFM"?RD:"#CCC"}`,paddingTop:6}},
-                h("p",{style:{margin:"0 0 2px",fontSize:10,fontWeight:"bold",color:MT,textTransform:"uppercase",letterSpacing:".3px"}},"IRPFM Apurado"),
-                h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:20,color:r.irpfmOn?RD:GN}},$$(r.IRPFM))
+              h("div",{style:{border:`${r.trilha==="IRPFM"?"2px solid "+RD:"1px solid "+GR}`,borderRadius:3,overflow:"hidden"}},
+                h("div",{style:{background:r.trilha==="IRPFM"?RD:"#D4D4D4",padding:"6px 12px",display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",gap:isMobile?4:0}},
+                  h("span",{style:{fontSize:12,fontWeight:"bold",color:r.trilha==="IRPFM"?"#fff":"#444"}},"Trilha B — IRPFM"),
+                  r.trilha==="IRPFM"&&h("span",{style:{fontSize:10,fontWeight:"bold",color:"rgba(255,255,255,.9)",background:"rgba(0,0,0,.18)",padding:"1px 7px",borderRadius:2}},"VENCE")
+                ),
+                h("div",{style:{background:WH,padding:"10px 12px"}},
+                  h("div",{style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"9px 10px",marginBottom:10}},
+                    r.irpfmFx===1&&h("div",null,
+                      h("div",{style:{marginBottom:6}},h("span",{style:PL("#E8F5E9",GN,"#4CAF50")},"FAIXA 1 — ISENÇÃO")),
+                      h("p",{style:{margin:"0 0 2px",fontSize:12,color:MT}},"Condição: RG ≤ R$ 600.000 → alíquota 0%"),
+                      h("p",{style:{margin:0,fontSize:12,...MN,color:MT}},$0(r.RG)+" ≤ R$ 600.000 → IRPFM = R$ 0")
+                    ),
+                    r.irpfmFx===2&&h("div",null,
+                      h("div",{style:{display:"flex",alignItems:"center",gap:5,marginBottom:7,flexWrap:"wrap"}},
+                        h("span",{style:PL("#FFF3CD","#6D4C00","#D4A000")},"FAIXA 2 — INTERMEDIÁRIA"),
+                        h("span",{style:{fontSize:10,color:MT}},"R$ 600k – R$ 1,2M")
+                      ),
+                      h("p",{style:{margin:"0 0 1px",fontSize:11,color:MT}},"Alíquota = RG ÷ 60.000 − 10"),
+                      h("p",{style:{margin:"0 0 1px",fontSize:12,...MN,wordBreak:"break-word"}},"= "+$0(r.RG)+" ÷ 60.000 − 10"),
+                      h("p",{style:{margin:"0 0 1px",fontSize:12,...MN}},"= "+(r.RG/60000).toFixed(4).replace(".",",")+" − 10"),
+                      h("p",{style:{margin:"0 0 7px",fontSize:12,...MN,fontWeight:"bold"}},"= "+r.aliqM.toFixed(4).replace(".",",")+"%"),
+                      h("p",{style:{margin:"0 0 1px",fontSize:11,color:MT}},"IRPFM = "+$0(r.RG)+" × "+r.aliqM.toFixed(4).replace(".",",")+"%"),
+                      h("p",{style:{margin:0,fontSize:13,...MN,fontWeight:"bold",color:RD}},$$(r.IRPFM))
+                    ),
+                    r.irpfmFx===3&&h("div",null,
+                      h("div",{style:{display:"flex",alignItems:"center",gap:5,marginBottom:7,flexWrap:"wrap"}},
+                        h("span",{style:PL("#FDECEA",RD,"#E53935")},"FAIXA 3 — ALÍQUOTA MÁXIMA"),
+                        h("span",{style:{fontSize:10,color:MT}},"RG > R$ 1,2M")
+                      ),
+                      h("p",{style:{margin:"0 0 1px",fontSize:11,color:MT}},"RG > R$ 1.200.000 → alíquota fixa: 10%"),
+                      h("p",{style:{margin:"0 0 1px",fontSize:12,...MN}},"IRPFM = "+$0(r.RG)+" × 10%"),
+                      h("p",{style:{margin:0,fontSize:13,...MN,fontWeight:"bold",color:RD}},$$(r.IRPFM))
+                    )
+                  ),
+                  h("div",{style:SP},h("span",{style:{fontSize:12,color:MT}},"Renda Global"),h("span",{style:{fontSize:12,...MN}},$$(r.RG))),
+                  h("div",{style:SP},h("span",{style:{fontSize:12,color:MT}},"Alíquota efetiva mínima"),h("span",{style:{fontSize:12,...MN,fontWeight:"bold"}},r.aliqM.toFixed(2).replace(".",",")+"%")),
+                  h("div",{style:{marginTop:10,borderTop:`2px solid ${r.trilha==="IRPFM"?RD:"#CCC"}`,paddingTop:6}},
+                    h("p",{style:{margin:"0 0 2px",fontSize:10,fontWeight:"bold",color:MT,textTransform:"uppercase",letterSpacing:".3px"}},"IRPFM Apurado"),
+                    h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:isMobile?18:20,color:r.irpfmOn?RD:GN}},$$(r.IRPFM))
+                  )
+                )
               )
+            ),
+            h("div",{style:{marginTop:10,background:r.trilha==="IRPFM"?"#FDECEA":"#EEF3FF",border:`2px solid ${r.trilha==="IRPFM"?RD:B}`,borderRadius:3,padding:isMobile?"10px":"10px 14px",display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",gap:isMobile?8:0}},
+              h("div",null,
+                h("p",{style:{margin:"0 0 3px",fontSize:10,fontWeight:"bold",color:MT,textTransform:"uppercase",letterSpacing:".5px"}},"Imposto Final Devido (maior entre as trilhas)"),
+                h("p",{style:{margin:0,fontSize:11,color:MT,lineHeight:1.4}},"Trilha: ",h("strong",{style:{color:TX}},r.trilha),"  ·  Alíquota efetiva s/ RG: ",h("strong",{style:{color:TX}},r.aliqEf.toFixed(2).replace(".",",")+"%"))
+              ),
+              h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:isMobile?20:22,color:TX}},$$(r.FINAL))
+            )
+          ),
+
+          h("div",{style:CARD},
+            h("div",{style:SH},h("p",{style:SHT},"Saldo na DAA de 2027 (ano-base 2026)")),
+            h("div",{style:{border:`1px solid ${GR}`,borderRadius:2,overflow:"hidden"}},
+              [["Imposto final devido",$$(r.FINAL),TX,WH],["(–) IRRF pró-labore retido","– "+$$(r.irPLa),MT,ALT],["(–) IRRF dividendos retidos","– "+$$(r.sumIrrfA),MT,WH]]
+                .map(([l,v,c,bg])=>h("div",{key:l,style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"6px 10px",background:bg,borderBottom:"1px solid #D8E8F5"}},
+                  h("span",{style:{fontSize:13,color:MT}},l),
+                  h("span",{style:{fontSize:13,...MN,color:c}},v)
+                )),
+              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"9px 10px",background:r.saldo>100?"#FDECEA":"#E8F5E9",borderTop:`2px solid ${r.saldo>100?RD:GN}`}},
+                h("strong",{style:{fontSize:13,textTransform:"uppercase",letterSpacing:".3px",color:r.saldo>100?RD:GN}},
+                  r.saldo>100?"IMPOSTO A PAGAR NA DAA":r.saldo<-100?"RESTITUIÇÃO ESTIMADA":"SITUAÇÃO QUITADA"
+                ),
+                h("strong",{style:{...MN,fontSize:isMobile?18:20,color:r.saldo>100?RD:GN}},$$(Math.abs(r.saldo)))
+              )
+            ),
+            r.saldo>3000&&h("div",{style:{background:"#FFF8E1",border:"1px solid #E6AE00",borderLeft:"4px solid #E65100",borderRadius:2,padding:"7px 10px",marginTop:6,fontSize:11,color:"#5D3200",lineHeight:1.5}},
+              "⚠ Saldo relevante a pagar. Considere separar caixa durante 2026 ou antecipar via carnê-leão para evitar surpresa na declaração."
+            )
+          ),
+
+          h("div",{style:CARD},
+            h("div",{style:SH},h("p",{style:SHT},"Resumo do cálculo")),
+            h("div",{style:{display:"grid",gridTemplateColumns:summaryGrid,gap:8}},
+              ...[
+                {l:"Renda Global",v:$$(r.RG),c:r.RG>600000?"#CC5500":TX},
+                {l:"Dividendos (ano)",v:$$(r.sumDivA),c:TX},
+                {l:"IRRF retido (ano)",v:$$(r.pagos),c:TX},
+                {l:"Imposto final",v:$$(r.FINAL),c:TX},
+                {l:"Alíquota efetiva",v:r.aliqEf.toFixed(2).replace(".",",")+"%",c:TX},
+                {l:r.saldo>0?"A pagar (DAA)":"Restituição",v:$$(Math.abs(r.saldo)),c:r.saldo>0?RD:GN},
+              ].map(it=>h("div",{key:it.l,style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"7px 10px"}},
+                h("p",{style:{margin:"0 0 3px",fontSize:10,color:MT,textTransform:"uppercase",fontWeight:"bold",letterSpacing:".3px"}},it.l),
+                h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:14,color:it.c}},it.v)
+              ))
+            )
+          ),
+
+          h("button",{onClick:()=>setTab("dados"),style:{width:isMobile?"100%":"auto",background:BG,border:`1px solid ${GR}`,borderRadius:2,color:MT,cursor:"pointer",padding:isMobile?"10px 14px":"5px 14px",fontSize:12,fontFamily:"inherit",marginBottom:8}},
+            "← Voltar às Fichas de Dados"
+          ),
+
+          h("div",{style:{border:`1px solid ${GR}`,borderRadius:2,padding:isMobile?"10px":"8px 12px",background:WH}},
+            h("p",{style:{margin:0,fontSize:isMobile?10:11,color:MT,lineHeight:1.7}},
+              h("strong",{style:{color:BD}},"Base legal: "),
+              "Lei 15.270/2025 · Art. 16-A e 16-B da Lei 9.250/1995 · IN RFB 2.299/2025 (art. 23-A) · Art. 14 da LC 123/2006 (ADIs 7912/7914/7917/STF) · Desconto simplificado 2026: R$ 17.640",
+              React.createElement("br",null),
+              "v1.1 — Estimativa de planejamento. Não substitui assessoria tributária. IRPFM apurado na DAA de 2027."
             )
           )
-        ),
-        h("div",{style:{marginTop:10,background:r.trilha==="IRPFM"?"#FDECEA":"#EEF3FF",border:`2px solid ${r.trilha==="IRPFM"?RD:B}`,borderRadius:3,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
-          h("div",null,
-            h("p",{style:{margin:"0 0 3px",fontSize:10,fontWeight:"bold",color:MT,textTransform:"uppercase",letterSpacing:".5px"}},"Imposto Final Devido (maior entre as trilhas)"),
-            h("p",{style:{margin:0,fontSize:11,color:MT}},"Trilha: ",h("strong",{style:{color:TX}},r.trilha),"  ·  Alíquota efetiva s/ RG: ",h("strong",{style:{color:TX}},r.aliqEf.toFixed(2).replace(".",",")+"%"))
-          ),
-          h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:22,color:TX}},$$(r.FINAL))
-        )
-      ),
-
-      h("div",{style:CARD},
-        h("div",{style:SH},h("p",{style:SHT},"Saldo na DAA de 2027 (ano-base 2026)")),
-        h("div",{style:{border:`1px solid ${GR}`,borderRadius:2,overflow:"hidden"}},
-          [["Imposto final devido",$$(r.FINAL),TX,WH],["(–) IRRF pró-labore retido","– "+$$(r.irPLa),MT,ALT],["(–) IRRF dividendos retidos","– "+$$(r.sumIrrfA),MT,WH]]
-            .map(([l,v,c,bg])=>h("div",{key:l,style:{display:"flex",justifyContent:"space-between",padding:"6px 10px",background:bg,borderBottom:"1px solid #D8E8F5"}},
-              h("span",{style:{fontSize:13,color:MT}},l),
-              h("span",{style:{fontSize:13,...MN,color:c}},v)
-            )),
-          h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 10px",background:r.saldo>100?"#FDECEA":"#E8F5E9",borderTop:`2px solid ${r.saldo>100?RD:GN}`}},
-            h("strong",{style:{fontSize:13,textTransform:"uppercase",letterSpacing:".3px",color:r.saldo>100?RD:GN}},
-              r.saldo>100?"IMPOSTO A PAGAR NA DAA":r.saldo<-100?"RESTITUIÇÃO ESTIMADA":"SITUAÇÃO QUITADA"
-            ),
-            h("strong",{style:{...MN,fontSize:20,color:r.saldo>100?RD:GN}},$$(Math.abs(r.saldo)))
-          )
-        ),
-        r.saldo>3000&&h("div",{style:{background:"#FFF8E1",border:"1px solid #E6AE00",borderLeft:"4px solid #E65100",borderRadius:2,padding:"7px 10px",marginTop:6,fontSize:11,color:"#5D3200",lineHeight:1.5}},
-          "⚠ Saldo relevante a pagar. Considere separar caixa durante 2026 ou antecipar via carnê-leão para evitar surpresa na declaração."
-        )
-      ),
-
-      h("div",{style:CARD},
-        h("div",{style:SH},h("p",{style:SHT},"Resumo do cálculo")),
-        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}},
-          ...[
-            {l:"Renda Global",v:$$(r.RG),c:r.RG>600000?"#CC5500":TX},
-            {l:"Dividendos (ano)",v:$$(r.sumDivA),c:TX},
-            {l:"IRRF retido (ano)",v:$$(r.pagos),c:TX},
-            {l:"Imposto final",v:$$(r.FINAL),c:TX},
-            {l:"Alíquota efetiva",v:r.aliqEf.toFixed(2).replace(".",",")+"%",c:TX},
-            {l:r.saldo>0?"A pagar (DAA)":"Restituição",v:$$(Math.abs(r.saldo)),c:r.saldo>0?RD:GN},
-          ].map(it=>h("div",{key:it.l,style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"7px 10px"}},
-            h("p",{style:{margin:"0 0 3px",fontSize:10,color:MT,textTransform:"uppercase",fontWeight:"bold",letterSpacing:".3px"}},it.l),
-            h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:14,color:it.c}},it.v)
-          ))
-        )
-      ),
-
-      h("button",{onClick:()=>setTab("dados"),style:{background:BG,border:`1px solid ${GR}`,borderRadius:2,color:MT,cursor:"pointer",padding:"5px 14px",fontSize:12,fontFamily:"inherit",marginBottom:8}},
-        "← Voltar às Fichas de Dados"
-      ),
-
-      h("div",{style:{border:`1px solid ${GR}`,borderRadius:2,padding:"8px 12px",background:WH}},
-        h("p",{style:{margin:0,fontSize:11,color:MT,lineHeight:1.7}},
-          h("strong",{style:{color:BD}},"Base legal: "),
-          "Lei 15.270/2025 · Art. 16-A e 16-B da Lei 9.250/1995 · IN RFB 2.299/2025 (art. 23-A) · Art. 14 da LC 123/2006 (ADIs 7912/7914/7917/STF) · Desconto simplificado 2026: R$ 17.640",
-          React.createElement("br",null),
-          "v1.1 — Estimativa de planejamento. Não substitui assessoria tributária. IRPFM apurado na DAA de 2027."
         )
       )
-    )
     )
   );
 }
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 </script>
+</body>
+</html>
