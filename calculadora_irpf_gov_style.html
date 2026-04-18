@@ -56,6 +56,10 @@ const BSEGS=[
   {from:1080000,to:1200000,bg:"#A32D2D",label:"10%"},
 ];
 const BMAX=1200000;
+const ART11A={
+  monthly:{full:5000,transition:7350.36,maxReduction:978.62},
+  annual:{full:60000,transition:88204.32,maxReduction:11743.44},
+};
 const $$=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v||0);
 const $0=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:0,maximumFractionDigits:0}).format(v||0);
 const round2=v=>Math.round((Number(v)||0)*100)/100;
@@ -65,6 +69,20 @@ function fmtIn(v){
 function parseMoneyDigits(raw){
   const digits=(raw||"").replace(/\D/g,"");
   return digits?round2(Number(digits)/100):0;
+}
+function calcArt11A(base,gross,scope){
+  const cfg=ART11A[scope];
+  if(base<=0||gross<=0){
+    return{...cfg,scope,status:"sem_base",label:"Sem incidencia",applies:false,reduction:0,final:0};
+  }
+  if(base<=cfg.full){
+    return{...cfg,scope,status:"integral",label:"Isencao total",applies:true,reduction:gross,final:0};
+  }
+  if(base<=cfg.transition){
+    const reduction=Math.min(gross,Math.max(0,cfg.maxReduction-(0.133145*base)));
+    return{...cfg,scope,status:reduction>0?"parcial":"sem_beneficio",label:reduction>0?"Reducao parcial":"Sem beneficio",applies:reduction>0,reduction,final:Math.max(0,gross-reduction)};
+  }
+  return{...cfg,scope,status:"sem_beneficio",label:"Sem beneficio",applies:false,reduction:0,final:gross};
 }
 function irBkd(base,L,R){
   const rows=[];let prev=0;
@@ -118,34 +136,34 @@ function App(){
   const r=useMemo(()=>{
     const ND=dep,inss=Math.min(pl*.11,932.31);
     const dedM=Math.max(607.20,inss+ND*189.59),bPL=Math.max(0,pl-dedM);
-    const irPLbr=irSum(bPL,TML,TMR),redM=Math.max(0,978.62-.133145*bPL);
-    const irPLm=Math.max(0,irPLbr-redM);
-    const EMP=emps.map(e=>({...e,ret:e.div>50000,irrf:e.div>50000?e.div*.1:0}));
+    const irPLbr=irSum(bPL,TML,TMR),art11AM=calcArt11A(bPL,irPLbr,"monthly");
+    const irPLm=art11AM.final;
+    const EMP=emps.map(e=>({...e,ret:e.div>50000,irrfTeor:e.div>50000?e.div*.1:0}));
     const sumDivM=EMP.reduce((s,e)=>s+e.div,0),sumDivA=sumDivM*12;
-    const sumIrrfA=EMP.reduce((s,e)=>s+e.irrf,0)*12;
+    const sumIrrfTeorA=EMP.reduce((s,e)=>s+e.irrfTeor,0)*12;
     const RG=pl*12+alug*12+sumDivA+cdb+outr;
     let aliqM=0,IRPFM=0,irpfmFx=1;
     if(RG>1200000){aliqM=10;IRPFM=RG*.10;irpfmFx=3;}
     else if(RG>600000){aliqM=RG/60000-10;IRPFM=RG*(aliqM/100);irpfmFx=2;}
     const RT=pl*12+alug*12+outr;
     const dS=Math.min(RT*.20,17640),bS=Math.max(0,RT-dS);
-    const irSbr=irSum(bS,TAL,TAR),redAS=Math.max(0,11743.44-1.59774*bS);
-    const irS=Math.max(0,irSbr-Math.min(irSbr,redAS));
+    const irSbr=irSum(bS,TAL,TAR),art11AS=calcArt11A(bS,irSbr,"annual");
+    const irS=art11AS.final;
     const dC=ND*2275.08+med+Math.min(edu,3561.50*(ND+1))+pgbl+inss*12;
-    const bC=Math.max(0,RT-dC),irCbr=irSum(bC,TAL,TAR);
-    const redAC=Math.max(0,11743.44-1.59774*bC);
-    const irC=Math.max(0,irCbr-Math.min(irCbr,redAC));
+    const bC=Math.max(0,RT-dC),irCbr=irSum(bC,TAL,TAR),art11AC=calcArt11A(bC,irCbr,"annual");
+    const irC=art11AC.final;
     const auto=decl==="auto"?irS<=irC:decl==="simplificada";
+    const art11AAnual=auto?art11AS:art11AC;
     const irFn=auto?irS:irC,irFnbr=auto?irSbr:irCbr;
-    const redFn=auto?Math.min(irSbr,redAS):Math.min(irCbr,redAC);
+    const redFn=art11AAnual.reduction;
     const tipo=auto?"Simplificada":"Completa",bT=auto?bS:bC,dT=auto?dS:dC;
     const bkdT=irBkd(bT,TAL,TAR);
     const FINAL=Math.max(irFn,IRPFM),trilha=IRPFM>=irFn?"IRPFM":"IR tradicional";
-    const pagos=irPLm*12+sumIrrfA,saldo=FINAL-pagos,aliqEf=RG>0?FINAL/RG*100:0;
-    return{inss,irPLm,irPLa:irPLm*12,EMP,sumDivM,sumDivA,sumIrrfA,
+    const refRetencoes=irPLm*12+sumIrrfTeorA,aliqEf=RG>0?FINAL/RG*100:0;
+    return{inss,bPL,irPLm,irPLa:irPLm*12,irPLbr,art11AM,EMP,sumDivM,sumDivA,sumIrrfTeorA,
       rgPL:pl*12,rgAL:alug*12,rgDIV:sumDivA,rgCDB:cdb,rgOT:outr,RG,isen,
-      aliqM,IRPFM,irpfmFx,RT,irFn,irFnbr,redFn,tipo,bT,dT,bkdT,
-      FINAL,trilha,pagos,saldo,aliqEf,
+      aliqM,IRPFM,irpfmFx,RT,irS,irSbr,irC,irCbr,art11AS,art11AC,art11AAnual,irFn,irFnbr,redFn,tipo,bT,dT,bkdT,
+      FINAL,totalPagar:FINAL,refRetencoes,aliqEf,
       sn:EMP.some(e=>e.reg==="SN"),irpfmOn:RG>600000,
       frag:EMP.length>1&&sumDivM>50000&&EMP.every(e=>e.div<=50000)};
   },[emps,pl,alug,cdb,isen,outr,dep,med,edu,pgbl,decl]);
@@ -170,6 +188,8 @@ function App(){
   const taxGap=isMobile?10:12;
   const headerStack=isMobile?{flexDirection:"column",alignItems:"flex-start",gap:8}:{};
   const wideRow=isNarrow?{flexDirection:"column",alignItems:"flex-start",gap:4}:{};
+  const art11ABadge=s=>s==="integral"?PL("#E8F5E9",GN,"#4CAF50"):s==="parcial"?PL("#FFF3CD","#6D4C00","#D4A000"):s==="sem_base"?PL("#E8F0FF",BD,"#90B5E0"):PL("#EFEFEF",MT,GR);
+  const art11AText=s=>s==="integral"?"ISENCAO TOTAL":s==="parcial"?"REDUCAO PARCIAL":s==="sem_base"?"SEM INCIDENCIA":"SEM BENEFICIO";
 
   return h("div",{style:{background:BG,paddingBottom:isMobile?20:32,minHeight:"100vh"}},
     h("div",{style:{maxWidth:1120,margin:"0 auto"}},
@@ -224,9 +244,9 @@ function App(){
                 ),
                 h("div",null,
                   h("label",{style:LBL},"Dividendos mensais (R$)"),
-                  h(CIn,{val:e.div,set:v=>upd(e.id,"div",v),ph:"0"}),
+                  h(CIn,{val:e.div,set:v=>upd(e.id,"div",v),ph:"0,00"}),
                   e.div>0&&h("p",{style:HN(e.div>50000?AM:GN)},
-                    e.div>50000?"IRRF retido: "+$$(e.div*.1)+"/mês"+(e.reg==="SN"?" — contestado (STF)":""):"Abaixo de R$ 50.000 — sem IRRF"
+                    e.div>50000?"IRRF teorico: "+$$(e.div*.1)+"/mês"+(e.reg==="SN"?" — contestado (STF)":""):"Abaixo de R$ 50.000 — sem retencao teorica"
                   )
                 )
               )
@@ -239,11 +259,11 @@ function App(){
           h("div",{style:CARD},
             h("div",{style:SH},h("p",{style:SHT},"Rendimentos pessoais")),
             h("div",{style:{display:"grid",gridTemplateColumns:formGrid,gap:12}},
-              h("div",null,h("label",{style:LBL},"Pró-labore mensal (R$)"),h(CIn,{val:pl,set:setPl,ph:"0"}),pl>0&&h("p",{style:HN()},"INSS: "+$$(r.inss)+" · IRRF: "+$$(r.irPLm)+"/mês")),
-              h("div",null,h("label",{style:LBL},"Aluguéis mensais (R$)"),h(CIn,{val:alug,set:setAlug,ph:"0"})),
-              h("div",null,h("label",{style:LBL},"CDB / Tesouro / Fundos (R$/ano)"),h(CIn,{val:cdb,set:setCdb,ph:"0"}),h("p",{style:HN(AM)},"Incluído na base do IRPFM")),
-              h("div",null,h("label",{style:LBL},"LCI / LCA / FII / Poupança (R$/ano)"),h(CIn,{val:isen,set:setIsen,ph:"0"}),h("p",{style:HN(GN)},"Excluídos do IRPFM (art. 16-A §1º)")),
-              h("div",null,h("label",{style:LBL},"Outros tributáveis (R$/ano)"),h(CIn,{val:outr,set:setOutr,ph:"0"}))
+              h("div",null,h("label",{style:LBL},"Pró-labore mensal (R$)"),h(CIn,{val:pl,set:setPl,ph:"0,00"}),pl>0&&h("p",{style:HN()},"INSS: "+$$(r.inss)+" · IR mensal teorico: "+$$(r.irPLm)+"/mês")),
+              h("div",null,h("label",{style:LBL},"Aluguéis mensais (R$)"),h(CIn,{val:alug,set:setAlug,ph:"0,00"})),
+              h("div",null,h("label",{style:LBL},"CDB / Tesouro / Fundos (R$/ano)"),h(CIn,{val:cdb,set:setCdb,ph:"0,00"}),h("p",{style:HN(AM)},"Incluído na base do IRPFM")),
+              h("div",null,h("label",{style:LBL},"LCI / LCA / FII / Poupança (R$/ano)"),h(CIn,{val:isen,set:setIsen,ph:"0,00"}),h("p",{style:HN(GN)},"Excluídos do IRPFM (art. 16-A §1º)")),
+              h("div",null,h("label",{style:LBL},"Outros tributáveis (R$/ano)"),h(CIn,{val:outr,set:setOutr,ph:"0,00"}))
             )
           ),
 
@@ -257,9 +277,9 @@ function App(){
                 ),
                 dep>0&&h("p",{style:HN()},"Dedução: "+$$(dep*2275.08)+"/ano")
               ),
-              h("div",null,h("label",{style:LBL},"Despesas médicas (R$/ano)"),h(CIn,{val:med,set:setMed,ph:"0"}),h("p",{style:HN()},"Sem teto legal")),
-              h("div",null,h("label",{style:LBL},"Educação (R$/ano)"),h(CIn,{val:edu,set:setEdu,ph:"0"}),h("p",{style:HN()},"Teto: "+$$(3561.50)+"/pessoa")),
-              h("div",null,h("label",{style:LBL},"PGBL / prev. privada (R$/ano)"),h(CIn,{val:pgbl,set:setPgbl,ph:"0"}))
+              h("div",null,h("label",{style:LBL},"Despesas médicas (R$/ano)"),h(CIn,{val:med,set:setMed,ph:"0,00"}),h("p",{style:HN()},"Sem teto legal")),
+              h("div",null,h("label",{style:LBL},"Educação (R$/ano)"),h(CIn,{val:edu,set:setEdu,ph:"0,00"}),h("p",{style:HN()},"Teto: "+$$(3561.50)+"/pessoa")),
+              h("div",null,h("label",{style:LBL},"PGBL / prev. privada (R$/ano)"),h(CIn,{val:pgbl,set:setPgbl,ph:"0,00"}))
             )
           ),
 
@@ -302,16 +322,16 @@ function App(){
           h("div",{style:CARD},
             h("div",{style:SH},h("p",{style:SHT},"IRRF por empresa")),
             ...r.EMP.map(e=>h("div",{key:e.id,style:{border:`1px solid ${GR}`,borderRadius:2,marginBottom:6,overflow:"hidden"}},
-              h("div",{style:{background:e.reg==="SN"?"#D0E4F5":"#E4E4E4",padding:"7px 10px",display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",gap:isMobile?6:0}},
+                h("div",{style:{background:e.reg==="SN"?"#D0E4F5":"#E4E4E4",padding:"7px 10px",display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",gap:isMobile?6:0}},
                 h("strong",{style:{fontSize:12,color:e.reg==="SN"?BD:TX}},e.nome),
                 h("div",{style:{display:"flex",gap:5,flexWrap:"wrap"}},
                   h("span",{style:PL(e.reg==="SN"?"#BDD6F0":"#D8D8D8",e.reg==="SN"?BD:MT,e.reg==="SN"?B:GR)},e.reg==="SN"?"SIMPLES":"LP"),
-                  e.ret&&h("span",{style:PL("#FFF3CD","#6D4C00","#D4A000")},"IRRF RETIDO"),
-                  !e.ret&&e.div>0&&h("span",{style:PL("#E8F5E9",GN,"#4CAF50")},"SEM RETENÇÃO")
+                  e.ret&&h("span",{style:PL("#FFF3CD","#6D4C00","#D4A000")},"RETENCAO TEORICA"),
+                  !e.ret&&e.div>0&&h("span",{style:PL("#E8F5E9",GN,"#4CAF50")},"SEM RETENCAO")
                 )
               ),
               h("div",{style:{display:"grid",gridTemplateColumns:companyResultGrid}},
-                [["Dividendos mensais",$$(e.div),TX],["Dividendos anuais",$$(e.div*12),TX],["IRRF retido anual",$$(e.irrf*12),e.ret?AM:GN]].map(([l,v,c],i)=>
+                [["Dividendos mensais",$$(e.div),TX],["Dividendos anuais",$$(e.div*12),TX],["IRRF teorico anual",$$(e.irrfTeor*12),e.ret?AM:GN]].map(([l,v,c],i)=>
                   h("div",{key:l,style:{padding:"6px 10px",background:i%2?ALT:WH,borderLeft:!isMobile&&i>0?`1px solid ${GR}`:"none",borderTop:isMobile&&i>0?`1px solid ${GR}`:"none"}},
                     h("span",{style:{display:"block",fontSize:10,color:MT,marginBottom:2,textTransform:"uppercase",fontWeight:"bold"}},l),
                     h("span",{style:{...MN,fontSize:12,fontWeight:"bold",color:c}},v)
@@ -320,7 +340,7 @@ function App(){
               )
             )),
             r.frag&&h("div",{style:{background:"#E3F2FD",border:"1px solid #64B5F6",borderLeft:`4px solid ${B}`,borderRadius:2,padding:"7px 10px",marginTop:4,fontSize:12,color:BD,lineHeight:1.5}},
-              "Dividendos combinados: ",h("strong",null,$$(r.sumDivM)),"/mês — cada CNPJ individualmente abaixo de R$ 50k. Sem IRRF mensal. ",h("strong",null,$$(r.sumDivA))," anuais integram a base do IRPFM."
+              "Dividendos combinados: ",h("strong",null,$$(r.sumDivM)),"/mês — cada CNPJ individualmente abaixo de R$ 50k. Sem retencao teorica mensal. ",h("strong",null,$$(r.sumDivA))," anuais integram a base do IRPFM."
             )
           ),
 
@@ -363,6 +383,56 @@ function App(){
           ),
 
           h("div",{style:CARD},
+            h("div",{style:SH},h("p",{style:SHT},"Nova Isencao Art. 11-A")),
+            h("div",{style:{display:"grid",gridTemplateColumns:compareGrid,gap:10}},
+              h("div",{style:{border:`1px solid ${GR}`,borderRadius:3,overflow:"hidden",background:WH}},
+                h("div",{style:{background:"#EAF2FD",padding:"7px 10px",borderBottom:`1px solid ${GR}`}},
+                  h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",gap:6}},
+                    h("strong",{style:{fontSize:12,color:BD}},"Apuracao mensal do pro-labore"),
+                    h("span",{style:art11ABadge(r.art11AM.status)},art11AText(r.art11AM.status))
+                  )
+                ),
+                h("div",{style:{padding:"8px 10px"}},
+                  [["Base mensal apos deducoes",r.bPL],["Imposto bruto mensal",r.irPLbr],["Reducao Art. 11-A",r.art11AM.reduction],["Imposto mensal teorico",r.irPLm]]
+                    .map(([l,v],i)=>h("div",{key:l,style:{...SP,borderBottom:i<3?"1px solid #D8E8F5":"none"}},
+                      h("span",{style:{fontSize:12,color:MT}},l),
+                      h("span",{style:{fontSize:12,...MN,fontWeight:"bold",color:TX}},$$(v))
+                    )),
+                  h("p",{style:{margin:"8px 0 0",fontSize:11,color:MT,lineHeight:1.45}},
+                    r.art11AM.status==="integral"?"A nova isencao zerou o imposto mensal do pro-labore.":
+                    r.art11AM.status==="parcial"?"O Art. 11-A reduziu parcialmente o imposto mensal do pro-labore.":
+                    r.art11AM.status==="sem_base"?"Nao ha base tributavel mensal para aplicar o Art. 11-A.":
+                    "O Art. 11-A nao trouxe reducao na apuracao mensal do pro-labore."
+                  )
+                )
+              ),
+              h("div",{style:{border:`1px solid ${GR}`,borderRadius:3,overflow:"hidden",background:WH}},
+                h("div",{style:{background:"#F4F7FB",padding:"7px 10px",borderBottom:`1px solid ${GR}`}},
+                  h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",gap:6}},
+                    h("strong",{style:{fontSize:12,color:BD}},"Apuracao anual do IR tradicional"),
+                    h("span",{style:art11ABadge(r.art11AAnual.status)},art11AText(r.art11AAnual.status))
+                  )
+                ),
+                h("div",{style:{padding:"8px 10px"}},
+                  [["Modalidade escolhida",r.tipo],["Base anual do IR tradicional",r.bT],["Imposto bruto anual",r.irFnbr],["Reducao Art. 11-A",r.redFn],["Imposto anual tradicional",r.irFn]]
+                    .map(([l,v],i)=>h("div",{key:l,style:{...SP,borderBottom:i<4?"1px solid #D8E8F5":"none"}},
+                      h("span",{style:{fontSize:12,color:MT}},l),
+                      typeof v==="string"
+                        ?h("span",{style:{fontSize:12,fontWeight:"bold",color:TX}},v)
+                        :h("span",{style:{fontSize:12,...MN,fontWeight:"bold",color:TX}},$$(v))
+                    )),
+                  h("p",{style:{margin:"8px 0 0",fontSize:11,color:MT,lineHeight:1.45}},
+                    r.art11AAnual.status==="integral"?"Na apuracao anual, o Art. 11-A zerou o imposto tradicional.":
+                    r.art11AAnual.status==="parcial"?"Na apuracao anual, o Art. 11-A reduziu parcialmente o imposto tradicional.":
+                    r.art11AAnual.status==="sem_base"?"Nao ha base tributavel anual para aplicar o Art. 11-A.":
+                    "Na apuracao anual, nao houve beneficio do Art. 11-A."
+                  )
+                )
+              )
+            )
+          ),
+
+          h("div",{style:CARD},
             h("div",{style:SH},h("p",{style:SHT},"Comparativo: duas trilhas de tributação")),
             h("div",{style:{display:"grid",gridTemplateColumns:compareGrid,gap:10}},
               h("div",{style:{border:`${r.trilha==="IR tradicional"?"2px solid "+B:"1px solid "+GR}`,borderRadius:3,overflow:"hidden"}},
@@ -389,7 +459,7 @@ function App(){
                       h("span",{style:{fontSize:11,...MN,fontWeight:"bold"}},$$(r.irFnbr))
                     )
                   ),
-                  r.redFn>0&&h("div",{style:{...SP}},h("span",{style:{fontSize:12,color:GN}},"(–) Redutor Lei 15.270/2025"),h("span",{style:{fontSize:12,...MN,color:GN}},`– ${$$(r.redFn)}`)),
+                  r.redFn>0&&h("div",{style:{...SP}},h("span",{style:{fontSize:12,color:GN}},"(–) Reducao Art. 11-A"),h("span",{style:{fontSize:12,...MN,color:GN}},`– ${$$(r.redFn)}`)),
                   h("div",{style:{marginTop:10,borderTop:`2px solid ${r.trilha==="IR tradicional"?B:"#CCC"}`,paddingTop:6}},
                     h("p",{style:{margin:"0 0 2px",fontSize:10,fontWeight:"bold",color:MT,textTransform:"uppercase",letterSpacing:".3px"}},"IR Tradicional Apurado"),
                     h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:isMobile?18:20,color:TX}},$$(r.irFn))
@@ -449,22 +519,22 @@ function App(){
           ),
 
           h("div",{style:CARD},
-            h("div",{style:SH},h("p",{style:SHT},"Saldo na DAA de 2027 (ano-base 2026)")),
+            h("div",{style:SH},h("p",{style:SHT},"Imposto anual estimado (sem abatimento de retencoes)")),
             h("div",{style:{border:`1px solid ${GR}`,borderRadius:2,overflow:"hidden"}},
-              [["Imposto final devido",$$(r.FINAL),TX,WH],["(–) IRRF pró-labore retido","– "+$$(r.irPLa),MT,ALT],["(–) IRRF dividendos retidos","– "+$$(r.sumIrrfA),MT,WH]]
+              [["IR tradicional anual",r.irFn,TX,WH],["IRPFM anual",r.IRPFM,TX,ALT],["IR mensal teorico do pro-labore (referencia)",r.irPLm,MT,WH],["IR teorico anual sobre dividendos (referencia)",r.sumIrrfTeorA,MT,ALT]]
                 .map(([l,v,c,bg])=>h("div",{key:l,style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"6px 10px",background:bg,borderBottom:"1px solid #D8E8F5"}},
                   h("span",{style:{fontSize:13,color:MT}},l),
-                  h("span",{style:{fontSize:13,...MN,color:c}},v)
+                  h("span",{style:{fontSize:13,...MN,color:c}},$$(v))
                 )),
-              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"9px 10px",background:r.saldo>100?"#FDECEA":"#E8F5E9",borderTop:`2px solid ${r.saldo>100?RD:GN}`}},
-                h("strong",{style:{fontSize:13,textTransform:"uppercase",letterSpacing:".3px",color:r.saldo>100?RD:GN}},
-                  r.saldo>100?"IMPOSTO A PAGAR NA DAA":r.saldo<-100?"RESTITUIÇÃO ESTIMADA":"SITUAÇÃO QUITADA"
+              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"9px 10px",background:"#FDECEA",borderTop:`2px solid ${RD}`}},
+                h("strong",{style:{fontSize:13,textTransform:"uppercase",letterSpacing:".3px",color:RD}},
+                  "TOTAL ESTIMADO A PAGAR"
                 ),
-                h("strong",{style:{...MN,fontSize:isMobile?18:20,color:r.saldo>100?RD:GN}},$$(Math.abs(r.saldo)))
+                h("strong",{style:{...MN,fontSize:isMobile?18:20,color:RD}},$$(r.totalPagar))
               )
             ),
-            r.saldo>3000&&h("div",{style:{background:"#FFF8E1",border:"1px solid #E6AE00",borderLeft:"4px solid #E65100",borderRadius:2,padding:"7px 10px",marginTop:6,fontSize:11,color:"#5D3200",lineHeight:1.5}},
-              "⚠ Saldo relevante a pagar. Considere separar caixa durante 2026 ou antecipar via carnê-leão para evitar surpresa na declaração."
+            h("div",{style:{background:"#FFF8E1",border:"1px solid #E6AE00",borderLeft:"4px solid #E65100",borderRadius:2,padding:"7px 10px",marginTop:6,fontSize:11,color:"#5D3200",lineHeight:1.5}},
+              "⚠ Nesta versao, as retencoes teoricas sao exibidas apenas como referencia e nao sao abatidas do total anual a pagar."
             )
           ),
 
@@ -474,13 +544,13 @@ function App(){
               ...[
                 {l:"Renda Global",v:$$(r.RG),c:r.RG>600000?"#CC5500":TX},
                 {l:"Dividendos (ano)",v:$$(r.sumDivA),c:TX},
-                {l:"IRRF retido (ano)",v:$$(r.pagos),c:TX},
+                {l:"Art. 11-A",v:r.art11AAnual.label,c:r.art11AAnual.applies?GN:MT},
                 {l:"Imposto final",v:$$(r.FINAL),c:TX},
                 {l:"Alíquota efetiva",v:r.aliqEf.toFixed(2).replace(".",",")+"%",c:TX},
-                {l:r.saldo>0?"A pagar (DAA)":"Restituição",v:$$(Math.abs(r.saldo)),c:r.saldo>0?RD:GN},
+                {l:"Total estimado a pagar",v:$$(r.totalPagar),c:RD},
               ].map(it=>h("div",{key:it.l,style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"7px 10px"}},
                 h("p",{style:{margin:"0 0 3px",fontSize:10,color:MT,textTransform:"uppercase",fontWeight:"bold",letterSpacing:".3px"}},it.l),
-                h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:14,color:it.c}},it.v)
+                h("p",{style:typeof it.v==="string"&&it.v.includes("R$")||typeof it.v==="string"&&it.v.includes("%")?{margin:0,...MN,fontWeight:"bold",fontSize:14,color:it.c}:{margin:0,fontWeight:"bold",fontSize:14,color:it.c}},it.v)
               ))
             )
           ),
@@ -490,12 +560,12 @@ function App(){
           ),
 
           h("div",{style:{border:`1px solid ${GR}`,borderRadius:2,padding:isMobile?"10px":"8px 12px",background:WH}},
-            h("p",{style:{margin:0,fontSize:isMobile?10:11,color:MT,lineHeight:1.7}},
-              h("strong",{style:{color:BD}},"Base legal: "),
-              "Lei 15.270/2025 · Art. 16-A e 16-B da Lei 9.250/1995 · IN RFB 2.299/2025 (art. 23-A) · Art. 14 da LC 123/2006 (ADIs 7912/7914/7917/STF) · Desconto simplificado 2026: R$ 17.640",
-              React.createElement("br",null),
-              "v1.1 — Estimativa de planejamento. Não substitui assessoria tributária. IRPFM apurado na DAA de 2027."
-            )
+              h("p",{style:{margin:0,fontSize:isMobile?10:11,color:MT,lineHeight:1.7}},
+                h("strong",{style:{color:BD}},"Base legal: "),
+                "Lei 15.270/2025 · Art. 11-A, 16-A e 16-B da Lei 9.250/1995 · IN RFB 2.299/2025 (art. 23-A) · Art. 14 da LC 123/2006 (ADIs 7912/7914/7917/STF) · Desconto simplificado 2026: R$ 17.640",
+                React.createElement("br",null),
+                "v1.1 — Estimativa de planejamento. Não substitui assessoria tributária. IRPFM apurado na DAA de 2027."
+              )
           )
         )
       )
