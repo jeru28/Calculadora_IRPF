@@ -119,6 +119,8 @@ function App(){
   const [med,setMed]=useState(0);const [edu,setEdu]=useState(0);
   const [pgbl,setPgbl]=useState(0);const [decl,setDecl]=useState("auto");
   const [tab,setTab]=useState("dados");
+  const [sliderDivM,setSliderDivM]=useState(null);
+  const [sliderPLS,setSliderPLS]=useState(null);
 
   useEffect(()=>{
     const onResize=()=>setVw(window.innerWidth);
@@ -171,6 +173,27 @@ function App(){
       sn:EMP.some(e=>e.reg==="SN"),irpfmOn:RG>600000,
       frag:EMP.length>1&&sumDivM>50000&&EMP.every(e=>e.div<=50000)};
   },[emps,pl,alug,cdb,isen,outr,dep,med,edu,pgbl,decl]);
+
+  const sens=useMemo(()=>{
+    const sDivM=sliderDivM!==null?sliderDivM:r.sumDivM;
+    const sPL=sliderPLS!==null?sliderPLS:pl;
+    const sRG=sPL*12+alug*12+sDivM*12+cdb+outr;
+    let sAliqM=0,sIRPFM=0;
+    if(sRG>1200000){sAliqM=10;sIRPFM=sRG*.10;}
+    else if(sRG>600000){sAliqM=sRG/60000-10;sIRPFM=sRG*(sAliqM/100);}
+    const sRT=sPL*12+alug*12+outr;
+    const sdS=Math.min(sRT*.20,17640),sbS=Math.max(0,sRT-sdS);
+    const sIrS=calcArt11A(sbS,irSum(sbS,TAL,TAR),"annual").final;
+    const sInss=Math.min(sPL*.11,932.31);
+    const sdC=dep*2275.08+med+Math.min(edu,3561.50*(dep+1))+pgbl+sInss*12,sbC=Math.max(0,sRT-sdC);
+    const sIrC=calcArt11A(sbC,irSum(sbC,TAL,TAR),"annual").final;
+    const sAuto=decl==="auto"?sIrS<=sIrC:decl==="simplificada";
+    const sIrFn=sAuto?sIrS:sIrC;
+    const sFINAL=Math.max(sIrFn,sIRPFM);
+    const sTrilha=sIRPFM>=sIrFn?"IRPFM":"IR tradicional";
+    const sAliqEf=sRG>0?sFINAL/sRG*100:0;
+    return{sDivM,sPL,sRG,sIRPFM,sIrFn,sFINAL,sTrilha,sAliqEf,delta:sFINAL-r.FINAL};
+  },[sliderDivM,sliderPLS,r,pl,alug,cdb,outr,dep,med,edu,pgbl,decl]);
 
   const h=(t,p,...c)=>React.createElement(t,p,...c);
   const CARD={background:WH,border:`1px solid ${GR}`,borderRadius:3,padding:isMobile?"10px":"10px 14px",marginBottom:10,overflow:"hidden"};
@@ -360,6 +383,51 @@ function App(){
                     h("p",{style:{margin:"3px 0 0",fontSize:11,color:GN}},"RG acima de R$ 1,2M — aliquota maxima atingida")
                   )
             )
+          ),
+
+          h("div",{style:{...CARD,border:"1px solid #90B5E0",background:ALT}},
+            h("div",{style:{...SH,background:"#C0D8EE"}},h("p",{style:SHT},"Painel de sensibilidade — simule cenarios")),
+            h("div",{style:{marginBottom:12}},
+              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,flexWrap:"wrap",gap:4}},
+                h("label",{style:{...LBL,margin:0}},"Dividendos mensais totais"),
+                h("span",{style:{...MN,fontWeight:"bold",fontSize:13,color:TX}},$$(sens.sDivM)+"/mes")
+              ),
+              h("input",{type:"range",min:0,max:Math.max(r.sumDivM*2,200000)||200000,step:5000,
+                value:sens.sDivM,onChange:e=>setSliderDivM(Number(e.target.value)),
+                style:{width:"100%",accentColor:B,cursor:"pointer"}}),
+              h("div",{style:{display:"flex",justifyContent:"space-between",fontSize:10,color:MT,marginTop:2}},
+                h("span","R$ 0"),h("span","Atual: "+$0(r.sumDivM)),h("span",$0(Math.max(r.sumDivM*2,200000)||200000))
+              )
+            ),
+            h("div",{style:{marginBottom:14}},
+              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,flexWrap:"wrap",gap:4}},
+                h("label",{style:{...LBL,margin:0}},"Pro-labore mensal"),
+                h("span",{style:{...MN,fontWeight:"bold",fontSize:13,color:TX}},$$(sens.sPL)+"/mes")
+              ),
+              h("input",{type:"range",min:0,max:Math.max(pl*2,50000)||50000,step:500,
+                value:sens.sPL,onChange:e=>setSliderPLS(Number(e.target.value)),
+                style:{width:"100%",accentColor:B,cursor:"pointer"}}),
+              h("div",{style:{display:"flex",justifyContent:"space-between",fontSize:10,color:MT,marginTop:2}},
+                h("span","R$ 0"),h("span","Atual: "+$0(pl)),h("span",$0(Math.max(pl*2,50000)||50000))
+              )
+            ),
+            h("div",{style:{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:8,borderTop:`1px solid ${GR}`,paddingTop:10,marginBottom:10}},
+              [
+                ["Imposto atual",$$(r.FINAL),TX],
+                ["Imposto projetado",$$(sens.sFINAL),sens.sFINAL>r.FINAL+0.01?RD:sens.sFINAL<r.FINAL-0.01?GN:TX],
+                ["Diferenca",(sens.delta>=0.01?"+":sens.delta<=-0.01?"":" ")+$$(sens.delta),sens.delta>0.01?RD:sens.delta<-0.01?GN:MT],
+              ].map(([l,v,c])=>h("div",{key:l,style:{background:WH,border:`1px solid ${GR}`,borderRadius:2,padding:"8px 10px"}},
+                h("p",{style:{margin:"0 0 3px",fontSize:10,color:MT,textTransform:"uppercase",fontWeight:"bold",letterSpacing:".3px"}},l),
+                h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:14,color:c}},v)
+              ))
+            ),
+            h("div",{style:{fontSize:11,color:MT,lineHeight:1.5}},
+              "Cenario projetado — RG: "+$$(sens.sRG)+" · Trilha: "+sens.sTrilha+" · Aliq. efetiva: "+sens.sAliqEf.toFixed(2).replace(".",",")+"%"
+            ),
+            (sliderDivM!==null||sliderPLS!==null)&&h("button",{
+              onClick:()=>{setSliderDivM(null);setSliderPLS(null);},
+              style:{marginTop:8,background:"none",border:`1px solid ${GR}`,borderRadius:2,color:MT,cursor:"pointer",padding:"4px 14px",fontSize:11,fontFamily:"inherit"}
+            },"\u21ba Restaurar valores originais")
           ),
 
           h("div",{style:CARD},
