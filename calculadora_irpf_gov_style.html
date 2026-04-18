@@ -68,6 +68,36 @@ const ART11A={
   monthly:{full:5000,transition:7350.36,maxReduction:978.62},
   annual:{full:60000,transition:88204.32,maxReduction:11743.44},
 };
+const HELP_TEXT={
+  empresas:[
+    "Crie uma ficha para cada empresa que paga dividendos para voce.",
+    "Regime tributario: escolha se a empresa esta no Lucro Presumido ou no Simples Nacional.",
+    "Atividade: use a atividade principal da empresa quando ela estiver no Lucro Presumido.",
+    "Dividendos mensais: informe o valor bruto pago por mes ao socio, nao o faturamento da empresa.",
+    "Se voce recebe de mais de um CNPJ, use o botao de adicionar empresa e separe os valores por empresa."
+  ],
+  rendimentos:[
+    "Pro-labore mensal: informe o valor bruto mensal antes do IR.",
+    "Alugueis mensais: use o valor recebido por mes, antes do calculo final anual.",
+    "CDB / Tesouro / Fundos: informe o rendimento tributavel do ano, nao o saldo investido.",
+    "LCI / LCA / FII / poupanca: informe o rendimento anual isento, nao o valor total aplicado.",
+    "Outros tributaveis: use este campo para rendimentos tributaveis da pessoa fisica que nao entraram nos campos acima."
+  ],
+  deducoes:[
+    "Dependentes: conte apenas quem pode ser usado legalmente como dependente no IRPF.",
+    "Despesas medicas: informe o total anual pago que pode ser deduzido, sem teto legal.",
+    "Educacao: informe o total anual pago, lembrando que existe limite legal por pessoa.",
+    "PGBL / previdencia privada: informe a contribuicao anual usada para deducao.",
+    "Se nao tiver certeza sobre alguma deducao, deixe em branco e confira depois com documentos."
+  ],
+  tributacao:[
+    "Automatico: a calculadora escolhe entre simplificada e completa dentro do IR tradicional.",
+    "Por Desconto Simplificado: aplica o desconto padrao de 20%, respeitando o teto legal.",
+    "Por Deducoes Legais: usa dependentes, saude, educacao, PGBL e outras deducoes informadas.",
+    "Depois disso, o sistema ainda compara o IR tradicional com o IRPFM e mostra qual trilha vence.",
+    "Se estiver em duvida, comece no automatico para ter um ponto de partida."
+  ]
+};
 const $$=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v||0);
 const $0=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:0,maximumFractionDigits:0}).format(v||0);
 const round2=v=>Math.round((Number(v)||0)*100)/100;
@@ -120,6 +150,7 @@ const WH="#FFFFFF",ALT="#EEF4FD";
 
 function App(){
   const [vw,setVw]=useState(typeof window==="undefined"?1024:window.innerWidth);
+  const [helpOpen,setHelpOpen]=useState(null);
   const [emps,setEmps]=useState([{id:1,nome:"Empresa 1",reg:"LP",at:0,div:0}]);
   const [pl,setPl]=useState(0);const [alug,setAlug]=useState(0);
   const [cdb,setCdb]=useState(0);const [isen,setIsen]=useState(0);
@@ -282,6 +313,26 @@ function App(){
   const wideRow=isNarrow?{flexDirection:"column",alignItems:"flex-start",gap:4}:{};
   const art11ABadge=s=>s==="integral"?PL("#E8F5E9",GN,"#4CAF50"):s==="parcial"?PL("#FFF3CD","#6D4C00","#D4A000"):s==="sem_base"?PL("#E8F0FF",BD,"#90B5E0"):PL("#EFEFEF",MT,GR);
   const art11AText=s=>s==="integral"?"ISENCAO TOTAL":s==="parcial"?"REDUCAO PARCIAL":s==="sem_base"?"SEM INCIDENCIA":"SEM BENEFICIO";
+  const helpButton=id=>h("button",{
+    type:"button",
+    onClick:()=>setHelpOpen(cur=>cur===id?null:id),
+    title:"Abrir ajuda desta secao",
+    style:{
+      width:isMobile?26:22,height:isMobile?26:22,borderRadius:"50%",
+      border:`1px solid ${helpOpen===id?B:GR}`,background:helpOpen===id?WH:"#F7F7F7",
+      color:helpOpen===id?B:MT,fontSize:isMobile?14:12,fontWeight:"bold",cursor:"pointer",
+      display:"inline-flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1
+    }
+  },"?");
+  const helpPanel=id=>helpOpen===id&&h("div",{style:{
+    margin:"0 0 12px",padding:isMobile?"10px":"9px 11px",background:"#F7FAFE",
+    border:`1px solid #B9D3EE`,borderLeft:`4px solid ${B}`,borderRadius:2
+  }},
+    h("p",{style:{margin:"0 0 6px",fontSize:11,fontWeight:"bold",color:BD,textTransform:"uppercase",letterSpacing:".3px"}},"Como preencher esta secao"),
+    h("ul",{style:{margin:"0 0 0 16px",padding:0,color:TX,fontSize:isMobile?11:12,lineHeight:1.5}},
+      ...HELP_TEXT[id].map((txt,i)=>h("li",{key:i,style:{margin:"0 0 4px"}},txt))
+    )
+  );
 
   return h("div",{style:{background:BG,paddingBottom:isMobile?20:32,minHeight:"100vh"}},
     h("div",{style:{maxWidth:1120,margin:"0 auto"}},
@@ -312,7 +363,11 @@ function App(){
       h("div",{style:{padding:pagePad}},
         tab==="dados"&&h("div",null,
           h("div",{style:CARD},
-            h("div",{style:SH},h("p",{style:SHT},"Empresas")),
+            h("div",{style:{...SH,display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}},
+              h("p",{style:SHT},"Empresas"),
+              helpButton("empresas")
+            ),
+            helpPanel("empresas"),
             ...emps.map(e=>h("div",{key:e.id,style:{border:`1px solid ${e.reg==="SN"?"#90B5E0":GR}`,borderRadius:2,padding:10,marginBottom:8,background:e.reg==="SN"?"#F0F6FF":"#FAFAFA"}},
               h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",flexDirection:isMobile?"column":"row",gap:isMobile?8:0,marginBottom:8}},
                 h("input",{value:e.nome,onChange:ev=>upd(e.id,"nome",ev.target.value),style:{border:"none",background:"none",fontSize:13,fontWeight:"bold",color:TX,outline:"none",flex:1,fontFamily:"inherit",textAlign:"left",width:"100%"}}),
@@ -349,7 +404,11 @@ function App(){
           ),
 
           h("div",{style:CARD},
-            h("div",{style:SH},h("p",{style:SHT},"Rendimentos pessoais")),
+            h("div",{style:{...SH,display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}},
+              h("p",{style:SHT},"Rendimentos pessoais"),
+              helpButton("rendimentos")
+            ),
+            helpPanel("rendimentos"),
             h("div",{style:{display:"grid",gridTemplateColumns:formGrid,gap:12}},
               h("div",null,h("label",{style:LBL},"Pró-labore mensal (R$)"),h(CIn,{val:pl,set:setPl,ph:"0,00"}),pl>0&&h("p",{style:HN()},"INSS: "+$$(r.inss)+" · IR mensal teorico: "+$$(r.irPLm)+"/mês")),
               h("div",null,h("label",{style:LBL},"Aluguéis mensais (R$)"),h(CIn,{val:alug,set:setAlug,ph:"0,00"})),
@@ -360,7 +419,11 @@ function App(){
           ),
 
           h("div",{style:CARD},
-            h("div",{style:SH},h("p",{style:SHT},"Deduções")),
+            h("div",{style:{...SH,display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}},
+              h("p",{style:SHT},"Deduções"),
+              helpButton("deducoes")
+            ),
+            helpPanel("deducoes"),
             h("div",{style:{display:"grid",gridTemplateColumns:formGrid,gap:12}},
               h("div",null,
                 h("label",{style:LBL},"Dependentes"),
@@ -376,7 +439,11 @@ function App(){
           ),
 
           h("div",{style:{...CARD,background:ALT,border:`1px solid #90B5E0`}},
-            h("div",{style:{...SH,background:"#C0D8EE"}},h("p",{style:SHT},"Opção pela tributação")),
+            h("div",{style:{...SH,background:"#C0D8EE",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}},
+              h("p",{style:SHT},"Opção pela tributação"),
+              helpButton("tributacao")
+            ),
+            helpPanel("tributacao"),
             h("div",{style:{display:"flex",gap:8,flexWrap:"wrap",flexDirection:isMobile?"column":"row"}},
               ...[["auto","Automático (mais vantajoso)"],["simplificada","Por Desconto Simplificado"],["completa","Por Deduções Legais"]].map(([v,lb])=>
                 h("label",{key:v,style:{
