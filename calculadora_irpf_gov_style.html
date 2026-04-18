@@ -34,6 +34,14 @@ input[type=radio]{accent-color:#2968B3;width:auto;height:auto;}
   }
   select{padding-right:40px;}
 }
+.print-only{display:none;}
+@media print{
+  .no-print{display:none!important;}
+  .print-only{display:block!important;}
+  .audit-zone{display:block!important;}
+  body,#root{background:#fff!important;}
+  @page{margin:1.5cm;size:A4 portrait;}
+}
 </style>
 </head>
 <body>
@@ -121,6 +129,8 @@ function App(){
   const [tab,setTab]=useState("dados");
   const [sliderDivM,setSliderDivM]=useState(null);
   const [sliderPLS,setSliderPLS]=useState(null);
+  const [auditOpen,setAuditOpen]=useState(false);
+  const handlePrint=()=>{setAuditOpen(true);setTimeout(()=>window.print(),200);};
 
   useEffect(()=>{
     const onResize=()=>setVw(window.innerWidth);
@@ -234,7 +244,7 @@ function App(){
         )
       ),
 
-      h("div",{style:{background:"#C8DDED",borderBottom:`2px solid ${B}`,display:"flex",padding:"0 8px"}},
+      h("div",{className:"no-print",style:{background:"#C8DDED",borderBottom:`2px solid ${B}`,display:"flex",padding:"0 8px"}},
         ["dados","resultados"].map(id=>h("button",{key:id,onClick:()=>setTab(id),style:{
           flex:1,padding:isMobile?"10px 8px":"6px 18px",cursor:"pointer",fontSize:isMobile?13:13,fontWeight:tab===id?"bold":"normal",fontFamily:"inherit",
           background:tab===id?WH:"transparent",color:tab===id?B:MT,
@@ -338,6 +348,16 @@ function App(){
         ),
 
         tab==="resultados"&&h("div",null,
+          h("div",{className:"print-only",style:{borderBottom:"2px solid #1A3F6F",paddingBottom:10,marginBottom:16}},
+            h("p",{style:{margin:"0 0 2px",fontSize:17,fontWeight:"bold",color:"#1A3F6F"}},"Relatorio de Planejamento Tributario — IRPF / IRPFM 2026"),
+            h("p",{style:{margin:"2px 0",fontSize:10,color:"#555"}},"Lei 15.270/2025 · IN RFB 2.299/2025 · v1.1 · Gerado em: "+new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"})),
+            h("p",{style:{margin:"6px 0 0",fontSize:11,color:"#333"}},
+              "Renda Global: ",h("strong",null,$$(r.RG)),
+              " \u00b7 Imposto final: ",h("strong",null,$$(r.FINAL)),
+              " \u00b7 Trilha: ",h("strong",null,r.trilha||"\u2014"),
+              " \u00b7 Aliq. efetiva: ",h("strong",null,r.aliqEf.toFixed(2).replace(".",",")+"%")
+            )
+          ),
           r.sn&&h("div",{style:{background:"#FFF8E1",border:"1px solid #E6AE00",borderLeft:"4px solid #E65100",borderRadius:2,padding:isMobile?"10px":"8px 12px",marginBottom:8,fontSize:12,color:"#5D3200",lineHeight:1.5}},
             h("strong",null,"▲ Simples Nacional — controvérsia jurídica. "),
             "RFB aplica IRRF de 10% (IN 2.299/2025, art. 23-A). Doutrina: art. 14 da LC 123/2006. ADIs 7912/7914/7917 pendentes no STF."
@@ -385,7 +405,7 @@ function App(){
             )
           ),
 
-          h("div",{style:{...CARD,border:"1px solid #90B5E0",background:ALT}},
+          h("div",{className:"no-print",style:{...CARD,border:"1px solid #90B5E0",background:ALT}},
             h("div",{style:{...SH,background:"#C0D8EE"}},h("p",{style:SHT},"Painel de sensibilidade — simule cenarios")),
             h("div",{style:{marginBottom:12}},
               h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,flexWrap:"wrap",gap:4}},
@@ -429,6 +449,23 @@ function App(){
               style:{marginTop:8,background:"none",border:`1px solid ${GR}`,borderRadius:2,color:MT,cursor:"pointer",padding:"4px 14px",fontSize:11,fontFamily:"inherit"}
             },"\u21ba Restaurar valores originais")
           ),
+
+          h("button",{className:"no-print",onClick:handlePrint,style:{
+            width:"100%",padding:isMobile?"12px":"9px",background:BD,border:"none",
+            borderRadius:2,color:"#fff",fontSize:isMobile?14:13,fontWeight:"bold",
+            cursor:"pointer",fontFamily:"inherit",marginBottom:8,letterSpacing:".4px"
+          }},"Emitir Relatorio / Salvar PDF"),
+
+          h("button",{className:"no-print",onClick:()=>setAuditOpen(o=>!o),style:{
+            width:"100%",padding:isMobile?"11px":"7px 10px",
+            background:auditOpen?"#E8F0FF":BG,
+            border:`1px solid ${auditOpen?B:GR}`,borderRadius:2,
+            color:auditOpen?B:MT,fontSize:isMobile?13:12,fontWeight:"bold",
+            cursor:"pointer",fontFamily:"inherit",marginBottom:8,
+            textAlign:"left",letterSpacing:".3px"
+          }},(auditOpen?"\u25bc":"\u25ba")+"  "+(auditOpen?"Ocultar calculos detalhados":"Ver calculos detalhados \u2014 Auditoria do Calculo")),
+
+          h("div",{className:"audit-zone",style:{display:auditOpen?"block":"none"}},
 
           h("div",{style:CARD},
             h("div",{style:SH},h("p",{style:SHT},"IRRF por empresa")),
@@ -653,8 +690,10 @@ function App(){
           ),
 
 
-          h("button",{onClick:()=>setTab("dados"),style:{width:isMobile?"100%":"auto",background:BG,border:`1px solid ${GR}`,borderRadius:2,color:MT,cursor:"pointer",padding:isMobile?"10px 14px":"5px 14px",fontSize:12,fontFamily:"inherit",marginBottom:8}},
-            "← Voltar às Fichas de Dados"
+          ),
+
+          h("button",{className:"no-print",onClick:()=>setTab("dados"),style:{width:isMobile?"100%":"auto",background:BG,border:`1px solid ${GR}`,borderRadius:2,color:MT,cursor:"pointer",padding:isMobile?"10px 14px":"5px 14px",fontSize:12,fontFamily:"inherit",marginBottom:8}},
+            "\u2190 Voltar \u00e0s Fichas de Dados"
           ),
 
           h("div",{style:{border:`1px solid ${GR}`,borderRadius:2,padding:isMobile?"10px":"8px 12px",background:WH}},
