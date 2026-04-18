@@ -450,20 +450,19 @@ function App(){
             },"\u21ba Restaurar valores originais")
           ),
 
-          h("button",{className:"no-print",onClick:handlePrint,style:{
-            width:"100%",padding:isMobile?"12px":"9px",background:BD,border:"none",
-            borderRadius:2,color:"#fff",fontSize:isMobile?14:13,fontWeight:"bold",
-            cursor:"pointer",fontFamily:"inherit",marginBottom:8,letterSpacing:".4px"
-          }},"Emitir Relatorio / Salvar PDF"),
-
-          h("button",{className:"no-print",onClick:()=>setAuditOpen(o=>!o),style:{
-            width:"100%",padding:isMobile?"11px":"7px 10px",
-            background:auditOpen?"#E8F0FF":BG,
-            border:`1px solid ${auditOpen?B:GR}`,borderRadius:2,
-            color:auditOpen?B:MT,fontSize:isMobile?13:12,fontWeight:"bold",
-            cursor:"pointer",fontFamily:"inherit",marginBottom:8,
-            textAlign:"left",letterSpacing:".3px"
-          }},(auditOpen?"\u25bc":"\u25ba")+"  "+(auditOpen?"Ocultar calculos detalhados":"Ver calculos detalhados \u2014 Auditoria do Calculo")),
+          h("div",{className:"no-print",onClick:()=>setAuditOpen(o=>!o),style:{
+            display:"flex",justifyContent:"space-between",alignItems:"center",
+            background:auditOpen?"#C0D8EE":"#D0E4F5",
+            border:`1px solid ${B}`,borderLeft:`4px solid ${B}`,
+            borderRadius:2,padding:isMobile?"13px 14px":"10px 14px",
+            cursor:"pointer",marginBottom:auditOpen?0:8,userSelect:"none"
+          }},
+            h("div",null,
+              h("p",{style:{margin:"0 0 2px",fontSize:isMobile?12:11,fontWeight:"bold",color:BD,textTransform:"uppercase",letterSpacing:".6px"}},"Auditoria do Calculo \u2014 Como chegamos aqui"),
+              h("p",{style:{margin:0,fontSize:isMobile?11:10,color:MT}},auditOpen?"Clique para ocultar os calculos detalhados":"Clique para expandir e ver todos os calculos")
+            ),
+            h("span",{style:{fontSize:isMobile?20:18,color:B,fontWeight:"bold",lineHeight:1}},auditOpen?"\u25bc":"\u25ba")
+          ),
 
           h("div",{className:"audit-zone",style:{display:auditOpen?"block":"none"}},
 
@@ -691,6 +690,12 @@ function App(){
 
 
           ),
+
+          h("button",{className:"no-print",onClick:handlePrint,style:{
+            width:"100%",padding:isMobile?"12px":"9px",background:BD,border:"none",
+            borderRadius:2,color:"#fff",fontSize:isMobile?14:13,fontWeight:"bold",
+            cursor:"pointer",fontFamily:"inherit",marginBottom:8,letterSpacing:".4px"
+          }},"Emitir Relatorio / Salvar PDF"),
 
           h("button",{className:"no-print",onClick:()=>setTab("dados"),style:{width:isMobile?"100%":"auto",background:BG,border:`1px solid ${GR}`,borderRadius:2,color:MT,cursor:"pointer",padding:isMobile?"10px 14px":"5px 14px",fontSize:12,fontFamily:"inherit",marginBottom:8}},
             "\u2190 Voltar \u00e0s Fichas de Dados"
