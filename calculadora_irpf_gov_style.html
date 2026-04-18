@@ -131,6 +131,32 @@ function App(){
   const [sliderPLS,setSliderPLS]=useState(null);
   const [auditOpen,setAuditOpen]=useState(false);
   const handlePrint=()=>{setAuditOpen(true);setTimeout(()=>window.print(),200);};
+  const handleShare=async()=>{
+    const linhas=[
+      "PLANEJAMENTO TRIBUTARIO \u2014 IRPF / IRPFM 2026",
+      "\u2501".repeat(34),
+      "",
+      "Renda Global: "+$$(r.RG),
+      "Imposto final: "+$$(r.FINAL),
+      "Trilha vencedora: "+(r.trilha||"\u2014"),
+      "Aliquota efetiva: "+r.aliqEf.toFixed(2).replace(".",",")+"%",
+      "Saldo DAA 2027: "+$$(Math.abs(r.saldoDAA))+(r.saldoDAA>0?" (a pagar)":" (restituicao projetada)"),
+      r.margDiv10k>0.01?"Custo marginal +R$10k dividendos: "+$$(r.margDiv10k):null,
+      "",
+      "Composicao da Renda Global:",
+      r.rgPL>0?"  Pro-labore (anual): "+$$(r.rgPL):null,
+      r.rgDIV>0?"  Dividendos (anual): "+$$(r.rgDIV):null,
+      r.rgAL>0?"  Alugueis (anual): "+$$(r.rgAL):null,
+      r.rgCDB>0?"  CDB / Tesouro / Fundos: "+$$(r.rgCDB):null,
+      r.isen>0?"  Rendimentos isentos (fora da base IRPFM): "+$$(r.isen):null,
+      "",
+      "\u2501".repeat(34),
+      "Gerado em "+new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"}),
+      "Lei 15.270/2025 \u00b7 IN RFB 2.299/2025",
+      "Estimativa de planejamento \u2014 nao substitui assessoria tributaria.",
+    ].filter(l=>l!==null).join("\n");
+    try{await navigator.share({title:"Planejamento Tributario IRPF/IRPFM 2026",text:linhas});}catch(e){}
+  };
 
   useEffect(()=>{
     const onResize=()=>setVw(window.innerWidth);
@@ -696,6 +722,12 @@ function App(){
             borderRadius:2,color:"#fff",fontSize:isMobile?14:13,fontWeight:"bold",
             cursor:"pointer",fontFamily:"inherit",marginBottom:8,letterSpacing:".4px"
           }},"Emitir Relatorio / Salvar PDF"),
+
+          typeof navigator!=="undefined"&&!!navigator.share&&h("button",{className:"no-print",onClick:handleShare,style:{
+            width:"100%",padding:isMobile?"12px":"9px",background:GN,border:"none",
+            borderRadius:2,color:"#fff",fontSize:isMobile?14:13,fontWeight:"bold",
+            cursor:"pointer",fontFamily:"inherit",marginBottom:8,letterSpacing:".4px"
+          }},"Compartilhar Resumo"),
 
           h("button",{className:"no-print",onClick:()=>setTab("dados"),style:{width:isMobile?"100%":"auto",background:BG,border:`1px solid ${GR}`,borderRadius:2,color:MT,cursor:"pointer",padding:isMobile?"10px 14px":"5px 14px",fontSize:12,fontFamily:"inherit",marginBottom:8}},
             "\u2190 Voltar \u00e0s Fichas de Dados"
