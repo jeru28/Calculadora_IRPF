@@ -12,18 +12,27 @@ body{min-height:100vh;}
 button,input,select{font:inherit;}
 input[type=text],select{
   background:#fff;border:1px solid #ABABAB;border-radius:2px;
-  padding:3px 8px;font-size:13px;color:#1A1A1A;width:100%;height:27px;
+  padding:6px 8px;font-size:13px;color:#1A1A1A;width:100%;min-height:32px;line-height:1.25;
 }
 input[type=text]:focus,select:focus{border-color:#2968B3;outline:1px solid rgba(41,104,179,.25);outline-offset:0;}
 input[type=text]{text-align:right;font-family:"Courier New",Courier,monospace;}
+select{
+  padding-right:34px;
+  appearance:none;-webkit-appearance:none;-moz-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%231A1A1A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M1 1.25 6 6.25l5-5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 10px center;
+  background-size:12px 8px;
+}
 input[type=radio]{accent-color:#2968B3;width:auto;height:auto;}
 #root{min-height:100vh;}
 @media (max-width:640px){
   input[type=text],select{
-    min-height:38px;
-    padding:8px 10px;
+    min-height:42px;
+    padding:10px;
     font-size:16px;
   }
+  select{padding-right:40px;}
 }
 </style>
 </head>
@@ -49,6 +58,24 @@ const BSEGS=[
 const BMAX=1200000;
 const $$=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v||0);
 const $0=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:0,maximumFractionDigits:0}).format(v||0);
+const round2=v=>Math.round((Number(v)||0)*100)/100;
+function fmtIn(v){
+  return round2(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function parseIn(raw){
+  const cleaned=(raw||"").replace(/\s/g,"").replace(/[^\d.,]/g,"");
+  if(!cleaned)return 0;
+  const hasComma=cleaned.includes(",");
+  let normalized=cleaned;
+  if(hasComma){
+    normalized=cleaned.replace(/\./g,"").replace(",",".");
+  }else{
+    const parts=cleaned.split(".");
+    normalized=parts.length>2?parts.slice(0,-1).join("")+"."+parts[parts.length-1]:cleaned;
+  }
+  const num=Number(normalized);
+  return Number.isFinite(num)?round2(num):0;
+}
 function irBkd(base,L,R){
   const rows=[];let prev=0;
   for(let i=0;i<L.length;i++){
@@ -60,11 +87,27 @@ function irBkd(base,L,R){
 }
 const irSum=(b,L,R)=>irBkd(b,L,R).reduce((s,r)=>s+r.tax,0);
 function CIn({val,set,ph}){
+  const [txt,setTxt]=useState(val>0?fmtIn(val):"");
+  const [focus,setFocus]=useState(false);
+  useEffect(()=>{
+    if(!focus)setTxt(val>0?fmtIn(val):"");
+  },[val,focus]);
   return React.createElement("input",{
     type:"text",
-    value:val>0?$0(val):"",
-    onChange:e=>{const d=e.target.value.replace(/\D/g,"");set(d?parseInt(d,10):0);},
-    placeholder:ph||"0",inputMode:"numeric"
+    value:focus?txt:(val>0?fmtIn(val):""),
+    onFocus:()=>setFocus(true),
+    onBlur:()=>{
+      const parsed=parseIn(txt);
+      set(round2(parsed));
+      setTxt(parsed>0?fmtIn(parsed):"");
+      setFocus(false);
+    },
+    onChange:e=>{
+      const raw=e.target.value.replace(/[^\d.,]/g,"");
+      setTxt(raw);
+      set(round2(parseIn(raw)));
+    },
+    placeholder:ph||"0,00",inputMode:"decimal"
   });
 }
 
@@ -147,7 +190,8 @@ function App(){
   const compareGrid=isMobile?"1fr":"repeat(auto-fit,minmax(220px,1fr))";
   const summaryGrid=isMobile?"1fr":"repeat(auto-fit,minmax(130px,1fr))";
   const companyResultGrid=isMobile?"1fr":"1fr 1fr 1fr";
-  const taxTableCols=isNarrow?"1fr 80px 70px":"1fr 72px 65px";
+  const taxTableCols=isNarrow?"1.2fr 1fr 1fr":"1.45fr 1fr 1fr";
+  const taxGap=isMobile?10:12;
   const headerStack=isMobile?{flexDirection:"column",alignItems:"flex-start",gap:8}:{};
   const wideRow=isNarrow?{flexDirection:"column",alignItems:"flex-start",gap:4}:{};
 
@@ -354,15 +398,15 @@ function App(){
                   h("div",{style:SP},h("span",{style:{fontSize:12,color:MT}},"Rendimentos tributáveis"),h("span",{style:{fontSize:12,...MN}},$$(r.RT))),
                   h("div",{style:SP},h("span",{style:{fontSize:12,color:MT}},`Dedução (${r.tipo})`),h("span",{style:{fontSize:12,...MN}},`– ${$$(r.dT)}`)),
                   h("div",{style:{...SP,marginBottom:8}},h("span",{style:{fontSize:12,color:MT}},"Base de cálculo"),h("span",{style:{fontSize:12,...MN}},$$(r.bT))),
-                  r.bT>0&&h("div",{style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"7px 9px",marginBottom:8,overflowX:"auto"}},
+                  r.bT>0&&h("div",{style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"7px 9px",marginBottom:8}},
                     h("p",{style:{margin:"0 0 4px",fontSize:10,fontWeight:"bold",color:BD,textTransform:"uppercase",letterSpacing:".5px"}},"Cálculo marginal por faixa:"),
-                    h("div",{style:{display:"grid",gridTemplateColumns:taxTableCols,fontSize:10,fontWeight:"bold",color:MT,textTransform:"uppercase",borderBottom:`1px solid ${GR}`,paddingBottom:3,marginBottom:3,columnGap:8,minWidth:isNarrow?320:"auto"}},
+                    h("div",{style:{display:"grid",gridTemplateColumns:taxTableCols,fontSize:isMobile?9:10,fontWeight:"bold",color:MT,textTransform:"uppercase",borderBottom:`1px solid ${GR}`,paddingBottom:3,marginBottom:3,columnGap:taxGap}},
                       ["Faixa","Valor na faixa","Imposto"].map((t,i)=>h("span",{key:i,style:{textAlign:i>0?"right":"left"}},t))
                     ),
-                    ...r.bkdT.map((row,i)=>h("div",{key:i,style:{display:"grid",gridTemplateColumns:taxTableCols,padding:"3px 0",borderBottom:i<r.bkdT.length-1?"1px solid #D8E8F5":"none",background:i%2?WH:"transparent",columnGap:8,minWidth:isNarrow?320:"auto"}},
-                      h("span",{style:{fontSize:11,color:MT}},row.q===0?"0% — isento":`${(row.q*100).toFixed(1).replace(".",",")}%`),
-                      h("span",{style:{fontSize:11,...MN,textAlign:"right",color:TX}},$0(row.amt)),
-                      h("span",{style:{fontSize:11,...MN,textAlign:"right",fontWeight:"bold",color:row.tax>0?TX:MT}},row.tax>0?$$(row.tax):"—")
+                    ...r.bkdT.map((row,i)=>h("div",{key:i,style:{display:"grid",gridTemplateColumns:taxTableCols,padding:"3px 0",borderBottom:i<r.bkdT.length-1?"1px solid #D8E8F5":"none",background:i%2?WH:"transparent",columnGap:taxGap}},
+                      h("span",{style:{fontSize:isMobile?10:11,color:MT}},row.q===0?"0% — isento":`${(row.q*100).toFixed(1).replace(".",",")}%`),
+                      h("span",{style:{fontSize:isMobile?10:11,...MN,textAlign:"right",color:TX}},$$(row.amt)),
+                      h("span",{style:{fontSize:isMobile?10:11,...MN,textAlign:"right",fontWeight:"bold",color:row.tax>0?TX:MT}},row.tax>0?$$(row.tax):"—")
                     )),
                     h("div",{style:{display:"flex",justifyContent:"space-between",paddingTop:4,marginTop:3,borderTop:`2px solid ${B}`,...wideRow}},
                       h("span",{style:{fontSize:11,fontWeight:"bold",color:BD,textTransform:"uppercase"}},"Subtotal bruto"),
