@@ -132,30 +132,59 @@ function App(){
   const [auditOpen,setAuditOpen]=useState(false);
   const handlePrint=()=>{setAuditOpen(true);setTimeout(()=>window.print(),200);};
   const handleShare=async()=>{
-    const linhas=[
-      "PLANEJAMENTO TRIBUTARIO \u2014 IRPF / IRPFM 2026",
-      "\u2501".repeat(34),
-      "",
-      "Renda Global: "+$$(r.RG),
-      "Imposto final: "+$$(r.FINAL),
-      "Trilha vencedora: "+(r.trilha||"\u2014"),
-      "Aliquota efetiva: "+r.aliqEf.toFixed(2).replace(".",",")+"%",
-      "Saldo DAA 2027: "+$$(Math.abs(r.saldoDAA))+(r.saldoDAA>0?" (a pagar)":" (restituicao projetada)"),
-      r.margDiv10k>0.01?"Custo marginal +R$10k dividendos: "+$$(r.margDiv10k):null,
-      "",
-      "Composicao da Renda Global:",
-      r.rgPL>0?"  Pro-labore (anual): "+$$(r.rgPL):null,
-      r.rgDIV>0?"  Dividendos (anual): "+$$(r.rgDIV):null,
-      r.rgAL>0?"  Alugueis (anual): "+$$(r.rgAL):null,
-      r.rgCDB>0?"  CDB / Tesouro / Fundos: "+$$(r.rgCDB):null,
-      r.isen>0?"  Rendimentos isentos (fora da base IRPFM): "+$$(r.isen):null,
-      "",
-      "\u2501".repeat(34),
-      "Gerado em "+new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"}),
-      "Lei 15.270/2025 \u00b7 IN RFB 2.299/2025",
-      "Estimativa de planejamento \u2014 nao substitui assessoria tributaria.",
-    ].filter(l=>l!==null).join("\n");
-    try{await navigator.share({title:"Planejamento Tributario IRPF/IRPFM 2026",text:linhas});}catch(e){}
+    const sep="\u2501".repeat(34);
+    const S=t=>"\n\u258c "+t;
+    const L=[];
+    L.push("PLANEJAMENTO TRIBUTARIO \u2014 IRPF / IRPFM 2026",sep,"");
+    L.push(S("RESUMO EXECUTIVO"));
+    L.push("Renda Global: "+$$(r.RG));
+    L.push("Imposto final: "+$$(r.FINAL));
+    L.push("Trilha vencedora: "+(r.trilha||"\u2014"));
+    L.push("Aliquota efetiva s/ RG: "+r.aliqEf.toFixed(2).replace(".",",")+"%");
+    L.push("Saldo DAA 2027: "+$$(Math.abs(r.saldoDAA))+(r.saldoDAA>0?" (a pagar)":" (restituicao projetada)"));
+    if(r.margDiv10k>0.01)L.push("Custo marginal +R$10k div.: "+$$(r.margDiv10k)+" ("+(r.margDiv10k/100).toFixed(2).replace(".",",")+"%)");
+    if(r.nextThreshold!==null)L.push("Distancia ate prox. faixa IRPFM: "+$$(r.distToNext));
+    L.push("",S("A \u2014 EMPRESAS"));
+    r.EMP.forEach(e=>{
+      L.push("["+e.nome+"] \u2014 "+(e.reg==="SN"?"Simples Nacional":"Lucro Presumido"));
+      L.push("  Dividendos mensais: "+$$(e.div)+" | Anuais: "+$$(e.div*12));
+      L.push(e.ret?"  IRRF teorico anual: "+$$(e.irrfTeor*12)+" (retencao prevista)":"  IRRF: sem retencao (div. \u2264 R$50k/mes/CNPJ)");
+    });
+    if(pl>0){
+      L.push("",S("B \u2014 PRO-LABORE E ENCARGOS"));
+      L.push("Pro-labore mensal: "+$$(pl));
+      L.push("INSS mensal: "+$$(r.inss));
+      L.push("Base tributavel mensal: "+$$(r.bPL));
+      L.push("Art. 11-A (mensal): "+r.art11AM.label);
+      L.push("IR mensal teorico retido: "+$$(r.irPLm));
+    }
+    L.push("",S("C \u2014 IR TRADICIONAL"));
+    L.push("Modalidade: "+r.tipo);
+    L.push("Rendimentos tributaveis: "+$$(r.RT));
+    L.push("Deducao aplicada: \u2013 "+$$(r.dT));
+    L.push("Base de calculo: "+$$(r.bT));
+    L.push("Imposto bruto: "+$$(r.irFnbr));
+    if(r.redFn>0)L.push("Reducao Art. 11-A: \u2013 "+$$(r.redFn));
+    L.push("IR Tradicional apurado: "+$$(r.irFn));
+    L.push("",S("D \u2014 IRPFM"));
+    L.push(r.irpfmFx===1?"Faixa: Isencao (RG \u2264 R$600.000)":r.irpfmFx===2?"Faixa: Intermediaria (R$600k \u2013 R$1,2M)":"Faixa: Aliquota maxima (RG > R$1,2M)");
+    L.push("Renda Global: "+$$(r.RG));
+    L.push("Aliquota: "+r.aliqM.toFixed(4).replace(".",",")+"%");
+    L.push("IRPFM apurado: "+$$(r.IRPFM));
+    L.push("",S("E \u2014 RETENCOES NO ANO (ESTIMATIVA)"));
+    L.push("IR mensal pro-labore x12: "+$$(r.irPLm*12));
+    L.push("IRRF sobre dividendos (est.): "+$$(r.sumIrrfTeorA));
+    L.push("Total retido antecipado: "+$$(r.refRetencoes));
+    L.push("(-) Imposto final devido: "+$$(r.FINAL));
+    L.push("= Saldo DAA 2027: "+$$(Math.abs(r.saldoDAA))+(r.saldoDAA>0?" (a pagar)":" (restituicao)"));
+    L.push("",S("G \u2014 ALERTAS"));
+    if(r.sn)L.push("\u25b2 Simples Nacional: controversia juridica ativa. RFB aplica IRRF de 10% (IN 2.299/2025, art. 23-A). Doutrina contesta via art. 14 LC 123/2006. ADIs 7912/7914/7917 pendentes no STF.");
+    L.push("\u2139 IRPFM apurado na DAA de 2027. Regulamentacao complementar da RFB ainda pendente (abr/2026).");
+    L.push("",sep);
+    L.push("Gerado em "+new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"}));
+    L.push("Lei 15.270/2025 \u00b7 IN RFB 2.299/2025 \u00b7 v1.1");
+    L.push("Estimativa de planejamento \u2014 nao substitui assessoria tributaria.");
+    try{await navigator.share({title:"Planejamento Tributario IRPF/IRPFM 2026",text:L.join("\n")});}catch(e){}
   };
 
   useEffect(()=>{
