@@ -160,10 +160,14 @@ function App(){
     const bkdT=irBkd(bT,TAL,TAR);
     const FINAL=Math.max(irFn,IRPFM),trilha=IRPFM>=irFn?"IRPFM":"IR tradicional";
     const refRetencoes=irPLm*12+sumIrrfTeorA,aliqEf=RG>0?FINAL/RG*100:0;
+    const saldoDAA=FINAL-refRetencoes;
+    const nextThreshold=RG<600000?600000:RG<1200000?1200000:null;
+    const distToNext=nextThreshold!==null?nextThreshold-RG:0;
+    const margDiv10k=(()=>{const nRG=RG+10000;let nI=0;if(nRG>1200000)nI=nRG*.10;else if(nRG>600000)nI=nRG*(nRG/60000-10)/100;return Math.max(nI,irFn)-FINAL;})();
     return{inss,bPL,irPLm,irPLa:irPLm*12,irPLbr,art11AM,EMP,sumDivM,sumDivA,sumIrrfTeorA,
       rgPL:pl*12,rgAL:alug*12,rgDIV:sumDivA,rgCDB:cdb,rgOT:outr,RG,isen,
       aliqM,IRPFM,irpfmFx,RT,irS,irSbr,irC,irCbr,art11AS,art11AC,art11AAnual,irFn,irFnbr,redFn,tipo,bT,dT,bkdT,
-      FINAL,totalPagar:FINAL,refRetencoes,aliqEf,
+      FINAL,trilha,totalPagar:FINAL,refRetencoes,aliqEf,saldoDAA,nextThreshold,distToNext,margDiv10k,
       sn:EMP.some(e=>e.reg==="SN"),irpfmOn:RG>600000,
       frag:EMP.length>1&&sumDivM>50000&&EMP.every(e=>e.div<=50000)};
   },[emps,pl,alug,cdb,isen,outr,dep,med,edu,pgbl,decl]);
@@ -317,6 +321,45 @@ function App(){
           ),
           r.irpfmOn&&h("div",{style:{background:"#E3F2FD",border:"1px solid #64B5F6",borderLeft:"4px solid #2968B3",borderRadius:2,padding:isMobile?"10px":"8px 12px",marginBottom:8,fontSize:12,color:BD,lineHeight:1.5}},
             "ℹ Renda Global supera R$ 600.000 — IRPFM ativado. Será apurado na DAA de 2027. Regulamentação complementar da RFB pendente."
+          ),
+
+          h("div",{style:{...CARD,border:`2px solid ${r.trilha==="IRPFM"?RD:B}`}},
+            h("div",{style:{...SH,background:r.trilha==="IRPFM"?"#FDECEA":"#D0E4F5",borderLeft:`4px solid ${r.trilha==="IRPFM"?RD:B}`}},
+              h("p",{style:SHT},"Decisao — o que voce precisa saber")
+            ),
+            h("div",{style:{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12,marginBottom:12}},
+              h("div",null,
+                h("p",{style:{margin:"0 0 2px",fontSize:10,color:MT,textTransform:"uppercase",fontWeight:"bold",letterSpacing:".5px"}},"Imposto final devido"),
+                h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:isMobile?22:26,color:TX}},$$(r.FINAL)),
+                h("p",{style:{margin:"4px 0 0",fontSize:12,color:MT}},
+                  "Trilha: ",h("strong",{style:{color:r.trilha==="IRPFM"?RD:B}},r.trilha||"—"),
+                  "  ·  Aliq. efetiva: ",h("strong",null,r.aliqEf.toFixed(2).replace(".",",")+"%")
+                )
+              ),
+              h("div",{style:{textAlign:isMobile?"left":"right"}},
+                h("p",{style:{margin:"0 0 2px",fontSize:10,color:MT,textTransform:"uppercase",fontWeight:"bold",letterSpacing:".5px"}},"Saldo projetado na DAA 2027"),
+                h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:isMobile?20:22,color:r.saldoDAA>0?RD:GN}},$$(Math.abs(r.saldoDAA))),
+                h("p",{style:{margin:"4px 0 0",fontSize:12,color:MT}},r.saldoDAA>0?"A pagar na declaracao":"Restituicao projetada")
+              )
+            ),
+            h("div",{style:{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:10,borderTop:`1px solid ${GR}`,paddingTop:10}},
+              h("div",{style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"8px 10px"}},
+                h("p",{style:{margin:"0 0 3px",fontSize:10,color:MT,textTransform:"uppercase",fontWeight:"bold",letterSpacing:".3px"}},"Custo marginal — proximos R$ 10k de dividendos"),
+                h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:15,color:r.margDiv10k>0.01?RD:MT}},r.margDiv10k>0.01?$$(r.margDiv10k):"R$ 0"),
+                h("p",{style:{margin:"3px 0 0",fontSize:11,color:MT}},r.margDiv10k>0.01?"= "+(r.margDiv10k/100).toFixed(2).replace(".",",")+"% sobre o incremento":"Sem impacto no IRPFM para este incremento")
+              ),
+              r.nextThreshold!==null
+                ?h("div",{style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"8px 10px"}},
+                    h("p",{style:{margin:"0 0 3px",fontSize:10,color:MT,textTransform:"uppercase",fontWeight:"bold",letterSpacing:".3px"}},"Distancia ate a proxima faixa IRPFM"),
+                    h("p",{style:{margin:0,...MN,fontWeight:"bold",fontSize:15,color:AM}},$$(r.distToNext)),
+                    h("p",{style:{margin:"3px 0 0",fontSize:11,color:MT}},"Proxima faixa: "+$0(r.nextThreshold))
+                  )
+                :h("div",{style:{background:"#E8F5E9",border:`1px solid #4CAF50`,borderRadius:2,padding:"8px 10px"}},
+                    h("p",{style:{margin:"0 0 3px",fontSize:10,color:GN,textTransform:"uppercase",fontWeight:"bold",letterSpacing:".3px"}},"Posicao IRPFM"),
+                    h("p",{style:{margin:0,fontWeight:"bold",fontSize:15,color:GN}},"Aliquota maxima (10%)"),
+                    h("p",{style:{margin:"3px 0 0",fontSize:11,color:GN}},"RG acima de R$ 1,2M — aliquota maxima atingida")
+                  )
+            )
           ),
 
           h("div",{style:CARD},
@@ -519,41 +562,28 @@ function App(){
           ),
 
           h("div",{style:CARD},
-            h("div",{style:SH},h("p",{style:SHT},"Imposto anual estimado (sem abatimento de retencoes)")),
+            h("div",{style:SH},h("p",{style:SHT},"Projecao do saldo na DAA 2027")),
             h("div",{style:{border:`1px solid ${GR}`,borderRadius:2,overflow:"hidden"}},
-              [["IR tradicional anual",r.irFn,TX,WH],["IRPFM anual",r.IRPFM,TX,ALT],["IR mensal teorico do pro-labore (referencia)",r.irPLm,MT,WH],["IR teorico anual sobre dividendos (referencia)",r.sumIrrfTeorA,MT,ALT]]
-                .map(([l,v,c,bg])=>h("div",{key:l,style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"6px 10px",background:bg,borderBottom:"1px solid #D8E8F5"}},
-                  h("span",{style:{fontSize:13,color:MT}},l),
-                  h("span",{style:{fontSize:13,...MN,color:c}},$$(v))
-                )),
-              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"9px 10px",background:"#FDECEA",borderTop:`2px solid ${RD}`}},
-                h("strong",{style:{fontSize:13,textTransform:"uppercase",letterSpacing:".3px",color:RD}},
-                  "TOTAL ESTIMADO A PAGAR"
+              [
+                ["(+) Imposto final devido (maior trilha)",r.FINAL,TX,WH,false],
+                ["(\u2212) IR mensal pro-labore retido no ano (estimativa)",r.irPLm*12,MT,ALT,true],
+                ["(\u2212) IRRF sobre dividendos retido no ano (estimativa)",r.sumIrrfTeorA,MT,WH,true],
+              ].map(([l,v,c,bg,isDed])=>h("div",{key:l,style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"6px 10px",background:bg,borderBottom:"1px solid #D8E8F5"}},
+                h("span",{style:{fontSize:13,color:MT}},l),
+                h("span",{style:{fontSize:13,...MN,color:c}},isDed?`\u2013 ${$$(v)}`:$$(v))
+              )),
+              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:isNarrow?"flex-start":"center",flexDirection:isNarrow?"column":"row",gap:isNarrow?4:8,padding:"9px 10px",background:r.saldoDAA>0?"#FDECEA":"#E8F5E9",borderTop:`2px solid ${r.saldoDAA>0?RD:GN}`}},
+                h("strong",{style:{fontSize:13,textTransform:"uppercase",letterSpacing:".3px",color:r.saldoDAA>0?RD:GN}},
+                  r.saldoDAA>0?"SALDO A PAGAR NA DAA":"RESTITUICAO PROJETADA"
                 ),
-                h("strong",{style:{...MN,fontSize:isMobile?18:20,color:RD}},$$(r.totalPagar))
+                h("strong",{style:{...MN,fontSize:isMobile?18:20,color:r.saldoDAA>0?RD:GN}},$$(Math.abs(r.saldoDAA)))
               )
             ),
             h("div",{style:{background:"#FFF8E1",border:"1px solid #E6AE00",borderLeft:"4px solid #E65100",borderRadius:2,padding:"7px 10px",marginTop:6,fontSize:11,color:"#5D3200",lineHeight:1.5}},
-              "⚠ Nesta versao, as retencoes teoricas sao exibidas apenas como referencia e nao sao abatidas do total anual a pagar."
+              "\u26a0 Estimativa baseada em retencoes teoricas. Considera IR mensal do pro-labore e IRRF sobre dividendos acima de R$ 50k/CNPJ/mes. Valores reais dependem do efetivamente retido na fonte."
             )
           ),
 
-          h("div",{style:CARD},
-            h("div",{style:SH},h("p",{style:SHT},"Resumo do cálculo")),
-            h("div",{style:{display:"grid",gridTemplateColumns:summaryGrid,gap:8}},
-              ...[
-                {l:"Renda Global",v:$$(r.RG),c:r.RG>600000?"#CC5500":TX},
-                {l:"Dividendos (ano)",v:$$(r.sumDivA),c:TX},
-                {l:"Art. 11-A",v:r.art11AAnual.label,c:r.art11AAnual.applies?GN:MT},
-                {l:"Imposto final",v:$$(r.FINAL),c:TX},
-                {l:"Alíquota efetiva",v:r.aliqEf.toFixed(2).replace(".",",")+"%",c:TX},
-                {l:"Total estimado a pagar",v:$$(r.totalPagar),c:RD},
-              ].map(it=>h("div",{key:it.l,style:{background:ALT,border:`1px solid ${GR}`,borderRadius:2,padding:"7px 10px"}},
-                h("p",{style:{margin:"0 0 3px",fontSize:10,color:MT,textTransform:"uppercase",fontWeight:"bold",letterSpacing:".3px"}},it.l),
-                h("p",{style:typeof it.v==="string"&&it.v.includes("R$")||typeof it.v==="string"&&it.v.includes("%")?{margin:0,...MN,fontWeight:"bold",fontSize:14,color:it.c}:{margin:0,fontWeight:"bold",fontSize:14,color:it.c}},it.v)
-              ))
-            )
-          ),
 
           h("button",{onClick:()=>setTab("dados"),style:{width:isMobile?"100%":"auto",background:BG,border:`1px solid ${GR}`,borderRadius:2,color:MT,cursor:"pointer",padding:isMobile?"10px 14px":"5px 14px",fontSize:12,fontFamily:"inherit",marginBottom:8}},
             "← Voltar às Fichas de Dados"
