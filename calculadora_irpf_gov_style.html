@@ -62,19 +62,9 @@ const round2=v=>Math.round((Number(v)||0)*100)/100;
 function fmtIn(v){
   return round2(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 }
-function parseIn(raw){
-  const cleaned=(raw||"").replace(/\s/g,"").replace(/[^\d.,]/g,"");
-  if(!cleaned)return 0;
-  const hasComma=cleaned.includes(",");
-  let normalized=cleaned;
-  if(hasComma){
-    normalized=cleaned.replace(/\./g,"").replace(",",".");
-  }else{
-    const parts=cleaned.split(".");
-    normalized=parts.length>2?parts.slice(0,-1).join("")+"."+parts[parts.length-1]:cleaned;
-  }
-  const num=Number(normalized);
-  return Number.isFinite(num)?round2(num):0;
+function parseMoneyDigits(raw){
+  const digits=(raw||"").replace(/\D/g,"");
+  return digits?round2(Number(digits)/100):0;
 }
 function irBkd(base,L,R){
   const rows=[];let prev=0;
@@ -87,27 +77,13 @@ function irBkd(base,L,R){
 }
 const irSum=(b,L,R)=>irBkd(b,L,R).reduce((s,r)=>s+r.tax,0);
 function CIn({val,set,ph}){
-  const [txt,setTxt]=useState(val>0?fmtIn(val):"");
-  const [focus,setFocus]=useState(false);
-  useEffect(()=>{
-    if(!focus)setTxt(val>0?fmtIn(val):"");
-  },[val,focus]);
   return React.createElement("input",{
     type:"text",
-    value:focus?txt:(val>0?fmtIn(val):""),
-    onFocus:()=>setFocus(true),
-    onBlur:()=>{
-      const parsed=parseIn(txt);
-      set(round2(parsed));
-      setTxt(parsed>0?fmtIn(parsed):"");
-      setFocus(false);
-    },
+    value:val>0?fmtIn(val):"",
     onChange:e=>{
-      const raw=e.target.value.replace(/[^\d.,]/g,"");
-      setTxt(raw);
-      set(round2(parseIn(raw)));
+      set(parseMoneyDigits(e.target.value));
     },
-    placeholder:ph||"0,00",inputMode:"decimal"
+    placeholder:ph||"0,00",inputMode:"numeric"
   });
 }
 
